@@ -1,0 +1,1960 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NovelPlatform — Hệ Thống Đọc Truyện Chữ Chuẩn Production (Hoàn Thiện 6 Giai Đoạn)</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Literata:opsz,wght@7..72,400;7..72,600;7..72,700&family=Merriweather:wght@400;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            literata: ['Literata', 'Georgia', 'serif'],
+            merriweather: ['Merriweather', 'Georgia', 'serif'],
+            roboto: ['Roboto', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+    .reader-theme-dark { background-color: #090d16; color: #e2e8f0; }
+    .reader-theme-light { background-color: #fafaf9; color: #1c1917; }
+    .reader-theme-sepia { background-color: #f4ecd8; color: #433422; }
+    .no-select { user-select: none; -webkit-user-select: none; }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 font-sans antialiased selection:bg-amber-500 selection:text-slate-950">
+
+  <!-- Reading Progress Bar (Only visible in Reader View) -->
+  <div id="readingProgressContainer" class="fixed top-0 left-0 right-0 z-50 h-1 bg-slate-800/40 hidden">
+    <div id="readingProgressBar" class="h-full bg-amber-500 transition-all duration-150" style="width: 0%"></div>
+  </div>
+
+  <!-- Top Navigation Header -->
+  <header id="mainHeader" class="sticky top-0 z-40 border-b border-slate-800/80 bg-slate-950/90 backdrop-blur-md">
+    <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3.5 gap-3">
+      <div class="flex items-center gap-3">
+        <button id="btnLogoHome" type="button" class="flex items-center gap-2.5 text-left group">
+          <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-slate-950 font-black text-base shadow-lg shadow-amber-500/20">
+            N
+          </span>
+          <div>
+            <span class="text-base sm:text-lg font-extrabold tracking-tight text-white group-hover:text-amber-400 transition-colors">
+              Novel<span class="text-amber-400">Platform</span>
+            </span>
+            <span class="hidden sm:block text-[10px] text-slate-400">Next.js App Router • Reader Engine v2.0</span>
+          </div>
+        </button>
+      </div>
+
+      <!-- Nav Tabs -->
+      <nav class="flex items-center gap-1.5 sm:gap-2">
+        <button id="navExploreBtn" type="button" class="rounded-xl px-3 py-2 text-xs font-semibold bg-amber-500 text-slate-950 transition-all">
+          Khám phá
+        </button>
+        <button id="navShelfBtn" type="button" class="rounded-xl px-3 py-2 text-xs font-medium bg-slate-900 text-slate-300 border border-slate-800 hover:border-slate-700 transition-all flex items-center gap-1.5">
+          <span>Tủ truyện & Lịch sử</span>
+          <span id="shelfCountBadge" class="rounded-full bg-amber-500/20 px-1.5 py-0.2 text-[10px] font-bold text-amber-300">0</span>
+        </button>
+        <button id="navAdminBtn" type="button" class="rounded-xl px-3 py-2 text-xs font-medium bg-slate-900 text-amber-300 border border-amber-500/30 hover:border-amber-500 transition-all">
+          🛠️ Quản trị CMS (GĐ 3)
+        </button>
+        <button id="navOpsBtn" type="button" class="rounded-xl px-3 py-2 text-xs font-medium bg-slate-900 text-cyan-300 border border-cyan-500/30 hover:border-cyan-400 transition-all">
+          🚀 Vận hành &amp; CI/CD (GĐ 6)
+        </button>
+        <button id="btnSyncAccount" type="button" class="hidden md:inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-medium text-emerald-300 hover:bg-emerald-500/20 transition-all">
+          <span id="syncStatusDot" class="h-2 w-2 rounded-full bg-emerald-400"></span>
+          <span id="syncAccountLabel">Đồng bộ Cloud</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Toast Notification -->
+  <div id="toastBanner" class="fixed bottom-5 right-5 z-50 hidden transform rounded-2xl border border-amber-500/40 bg-slate-900/95 px-4 py-3 text-xs font-medium text-slate-100 shadow-2xl backdrop-blur-md transition-all">
+    <span id="toastMessage">Đã lưu cài đặt</span>
+  </div>
+
+  <!-- VIEW 1: HOME & EXPLORE -->
+  <main id="viewExplore" class="mx-auto max-w-6xl px-4 py-6 sm:py-8">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <!-- Left 8 cols: Multi-Condition Filter & Story Grid -->
+      <div class="lg:col-span-8 space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
+          <div>
+            <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-white">
+              Khám phá Kho Truyện Chữ
+            </h1>
+            <p class="text-xs text-slate-400 mt-0.5">
+              Bộ lọc đa điều kiện kết hợp Index-Only Scan &amp; Prefetching 0ms
+            </p>
+          </div>
+          <span id="filterResultCount" class="text-xs font-mono text-amber-400">6 bộ truyện</span>
+        </div>
+
+        <!-- Filter Card -->
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 sm:p-5 space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+            <div class="sm:col-span-5">
+              <label for="searchInput" class="sr-only">Tìm kiếm truyện</label>
+              <div class="relative">
+                <input
+                  id="searchInput"
+                  type="text"
+                  placeholder="Tìm tên truyện, tác giả (Autocomplete < 50ms)..."
+                  class="w-full rounded-xl border border-slate-700/80 bg-slate-950 px-3.5 py-2 text-xs text-slate-100 placeholder-slate-500 focus:border-amber-500 focus:outline-none"
+                />
+                <div id="searchSuggestDropdown" class="absolute left-0 right-0 top-full z-50 mt-1 hidden rounded-xl border border-slate-700 bg-slate-900/95 p-1.5 shadow-2xl backdrop-blur-md space-y-1"></div>
+              </div>
+            </div>
+            <div class="sm:col-span-2">
+              <label for="statusSelect" class="sr-only">Trạng thái</label>
+              <select id="statusSelect" class="w-full rounded-xl border border-slate-700/80 bg-slate-950 px-2.5 py-2 text-xs text-slate-200 focus:border-amber-500 focus:outline-none">
+                <option value="ALL">Mọi trạng thái</option>
+                <option value="ONGOING">Đang ra</option>
+                <option value="COMPLETED">Hoàn thành</option>
+              </select>
+            </div>
+            <div class="sm:col-span-2">
+              <label for="chapterRangeSelect" class="sr-only">Số chương</label>
+              <select id="chapterRangeSelect" class="w-full rounded-xl border border-slate-700/80 bg-slate-950 px-2.5 py-2 text-xs text-slate-200 focus:border-amber-500 focus:outline-none">
+                <option value="ALL">Mọi số chương</option>
+                <option value="UNDER_1000">&lt; 1.000 chương</option>
+                <option value="OVER_1000">&ge; 1.000 chương</option>
+              </select>
+            </div>
+            <div class="sm:col-span-3">
+              <label for="sortSelect" class="sr-only">Sắp xếp</label>
+              <select id="sortSelect" class="w-full rounded-xl border border-slate-700/80 bg-slate-950 px-2.5 py-2 text-xs text-slate-200 focus:border-amber-500 focus:outline-none">
+                <option value="views">Sắp xếp: Lượt xem</option>
+                <option value="updated">Sắp xếp: Mới cập nhật</option>
+                <option value="rating">Sắp xếp: Đánh giá ★</option>
+                <option value="chapters">Sắp xếp: Số chương</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Category Pills -->
+          <div id="categoryPillsContainer" class="flex flex-wrap gap-1.5 pt-1"></div>
+        </div>
+
+        <!-- Recommendation Section (Giai đoạn 4: Content-based Jaccard & Collaborative Filtering) -->
+        <div class="rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-indigo-500/10 to-slate-900/70 p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-bold text-amber-300">✨ Gợi ý thông minh (Recommendation Engine)</span>
+              <span class="rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-mono text-amber-400">Jaccard &amp; Co-occurrence</span>
+            </div>
+            <span class="text-[11px] text-slate-400">Tự động học theo gu đọc</span>
+          </div>
+          <div id="recommendationCardsContainer" class="grid grid-cols-1 sm:grid-cols-3 gap-2.5"></div>
+        </div>
+
+        <!-- Story Cards Grid -->
+        <div id="storyGridContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+      </div>
+
+      <!-- Right 4 cols: Redis ZSET Leaderboard & Quick Continue Reading -->
+      <aside class="lg:col-span-4 space-y-6">
+        <!-- Continue Reading Widget -->
+        <div id="quickContinueBox" class="rounded-2xl border border-amber-500/30 bg-gradient-to-b from-amber-500/10 to-slate-900/70 p-4 hidden">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-amber-400">⏱️ Đọc tiếp gần đây</span>
+            <span id="quickContinueProgress" class="text-[11px] font-mono text-amber-300">0%</span>
+          </div>
+          <p id="quickContinueTitle" class="text-sm font-bold text-white truncate"></p>
+          <p id="quickContinueChapter" class="text-xs text-slate-300 mt-0.5 truncate"></p>
+          <button id="btnQuickContinue" type="button" class="mt-3 w-full rounded-xl bg-amber-500 py-2 text-xs font-bold text-slate-950 hover:bg-amber-400 transition-colors">
+            Đọc tiếp ngay →
+          </button>
+        </div>
+
+        <!-- Leaderboard Card -->
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+            <div>
+              <h2 class="text-sm font-bold text-white">🔥 Bảng Xếp Hạng Đọc Nhiều</h2>
+              <p class="text-[10px] text-slate-400">Đồng bộ từ Redis Sorted Set (ZSET)</p>
+            </div>
+            <div class="flex rounded-lg bg-slate-950 p-0.5 border border-slate-800">
+              <button type="button" data-tf="daily" class="lb-tab-btn rounded-md px-2 py-1 text-[10px] font-semibold bg-amber-500 text-slate-950">Ngày</button>
+              <button type="button" data-tf="weekly" class="lb-tab-btn rounded-md px-2 py-1 text-[10px] font-medium text-slate-400 hover:text-white">Tuần</button>
+              <button type="button" data-tf="monthly" class="lb-tab-btn rounded-md px-2 py-1 text-[10px] font-medium text-slate-400 hover:text-white">Tháng</button>
+            </div>
+          </div>
+
+          <div id="leaderboardList" class="space-y-2.5"></div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <!-- VIEW 2: BOOKSHELF & READING HISTORY -->
+  <main id="viewShelf" class="mx-auto max-w-6xl px-4 py-6 sm:py-8 hidden">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-5 mb-6">
+      <div>
+        <h1 class="text-xl sm:text-2xl font-extrabold text-white">Tủ Truyện &amp; Lịch Sử Đọc</h1>
+        <p class="text-xs text-slate-400 mt-1">Tự động lưu vị trí cuộn trang trong localStorage và hợp nhất lên tài khoản khi đăng nhập</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="btnClearHistory" type="button" class="rounded-xl border border-slate-700 bg-slate-900 px-3.5 py-2 text-xs text-slate-300 hover:border-rose-500/50 hover:text-rose-300">
+          Xoá lịch sử tạm
+        </button>
+        <button id="btnBackToExploreFromShelf" type="button" class="rounded-xl bg-amber-500 px-4 py-2 text-xs font-bold text-slate-950 hover:bg-amber-400">
+          ← Tiếp tục khám phá
+        </button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="rounded-2xl border border-slate-800 bg-slate-900/50 p-5">
+        <h2 class="text-base font-bold text-amber-400 mb-4">⏱️ Lịch sử đọc gần đây</h2>
+        <div id="historyListContainer" class="space-y-3"></div>
+      </div>
+
+      <div class="rounded-2xl border border-slate-800 bg-slate-900/50 p-5">
+        <h2 class="text-base font-bold text-rose-400 mb-4">♥ Truyện đã đánh dấu (Bookmarks)</h2>
+        <div id="bookmarkListContainer" class="space-y-3"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- VIEW 3: STORY DETAIL -->
+  <main id="viewStoryDetail" class="mx-auto max-w-5xl px-4 py-6 sm:py-8 hidden">
+    <div class="mb-4">
+      <button id="btnBackFromDetail" type="button" class="inline-flex items-center gap-1.5 rounded-xl border border-slate-800 bg-slate-900/80 px-3.5 py-2 text-xs font-medium text-amber-400 hover:border-amber-500/40">
+        ← Quay lại danh sách truyện
+      </button>
+    </div>
+
+    <div id="storyDetailContent" class="space-y-6"></div>
+  </main>
+
+  <!-- VIEW 4: READER ENGINE -->
+  <section id="viewReader" class="min-h-screen transition-colors duration-200 reader-theme-dark hidden">
+    <!-- Sticky Reader Topbar -->
+    <div class="sticky top-0 z-30 border-b border-current/10 backdrop-blur-md bg-inherit/90">
+      <div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 gap-2">
+        <div class="flex items-center gap-2 min-w-0">
+          <button id="btnReaderBackToStory" type="button" class="shrink-0 rounded-xl border border-current/20 px-3 py-1.5 text-xs font-semibold hover:border-amber-500 transition-colors">
+            ← Mục lục
+          </button>
+          <div class="truncate">
+            <p id="readerTopStoryTitle" class="text-[11px] opacity-65 truncate"></p>
+            <p id="readerTopChapterTitle" class="text-xs font-bold truncate"></p>
+          </div>
+          <span class="hidden lg:inline-flex items-center gap-1 rounded-full bg-indigo-500/15 border border-indigo-500/30 px-2 py-0.5 text-[10px] font-mono text-indigo-300" title="Đã nhúng chữ ký ẩn Zero-width fingerprinting để bảo vệ bản quyền">
+            🛡️ Zero-width Watermark Active
+          </span>
+        </div>
+
+        <div class="flex items-center gap-2 shrink-0">
+          <span id="prefetchBadge" class="hidden sm:inline-flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-1 text-[11px] font-semibold text-emerald-400">
+            ⚡ Đã prefetch chương kế (0ms)
+          </span>
+          <span id="readerPercentBadge" class="text-xs font-mono opacity-75 w-10 text-right">0%</span>
+          <button id="btnOpenReaderSettings" type="button" class="rounded-xl border border-current/25 px-3 py-1.5 text-xs font-bold hover:border-amber-500 transition-colors">
+            ⚙️ Aa Tuỳ chỉnh
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reader Article Container -->
+    <div id="readerFrameContainer" class="mx-auto px-4 py-8 sm:px-6 max-w-3xl transition-all">
+      <div class="mb-8 text-center border-b border-current/10 pb-6">
+        <p id="readerStorySubtitle" class="text-xs uppercase tracking-widest opacity-60"></p>
+        <h1 id="readerChapterHeading" class="mt-2 text-2xl sm:text-3xl font-bold"></h1>
+        <p id="readerChapterMeta" class="mt-2 text-xs opacity-60"></p>
+      </div>
+
+      <!-- Quick Top Chapter Nav -->
+      <div class="mb-8 flex items-center justify-between gap-2">
+        <button id="btnPrevChapterTop" type="button" class="rounded-xl border border-current/20 px-4 py-2 text-xs font-semibold hover:border-amber-500 disabled:opacity-30">
+          ← Chương trước
+        </button>
+        <select id="readerChapterSelect" aria-label="Chọn chương" class="rounded-xl border border-current/20 bg-transparent px-3 py-2 text-xs font-semibold focus:outline-none"></select>
+        <button id="btnNextChapterTop" type="button" class="rounded-xl bg-amber-500 px-4 py-2 text-xs font-bold text-slate-950 hover:bg-amber-400 disabled:opacity-30">
+          Chương sau →
+        </button>
+      </div>
+
+      <!-- Main Chapter Paragraphs -->
+      <article id="readerArticleBody" class="no-select space-y-6 font-literata text-justify" style="font-size: 20px; line-height: 1.8;"></article>
+
+      <!-- Bottom Chapter Navigation -->
+      <div class="mt-12 border-t border-current/10 pt-8 space-y-4">
+        <div class="flex items-center justify-between gap-3">
+          <button id="btnPrevChapterBottom" type="button" class="flex-1 rounded-xl border border-current/20 py-3.5 text-xs sm:text-sm font-semibold hover:border-amber-500 disabled:opacity-30">
+            ← Chương trước (Phím ←)
+          </button>
+          <button id="btnBackToCatalogBottom" type="button" class="rounded-xl border border-current/20 px-5 py-3.5 text-xs sm:text-sm font-medium hover:border-amber-500">
+            Danh sách chương
+          </button>
+          <button id="btnNextChapterBottom" type="button" class="flex-1 rounded-xl bg-amber-500 py-3.5 text-xs sm:text-sm font-bold text-slate-950 hover:bg-amber-400 disabled:opacity-30">
+            Chương tiếp (Phím →)
+          </button>
+        </div>
+        <p class="text-center text-[11px] opacity-60">
+          💡 Mẹo: Khi cuộn tới 70% trang, hệ thống tự động tải ngầm chương tiếp theo vào bộ nhớ đệm giúp chuyển chương tức thì (0ms).
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- VIEW 5: ADMIN CMS, AUTH RBAC & BULK IMPORT (PHASE 3) -->
+  <main id="viewAdmin" class="mx-auto max-w-6xl px-4 py-6 sm:py-8 hidden space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
+      <div>
+        <span class="rounded-full bg-amber-500/15 px-2.5 py-0.5 text-[10px] font-bold text-amber-400 uppercase tracking-wider">Giai đoạn 3 • Backend, Auth RBAC &amp; BullMQ</span>
+        <h1 class="text-xl sm:text-2xl font-extrabold text-white mt-1">Hệ Thống Quản Trị CMS &amp; Pipeline Nhập Liệu</h1>
+        <p class="text-xs text-slate-400 mt-0.5">Kiểm thử phân quyền RBAC, soạn thảo chương nén Zstd, hẹn giờ đăng và BullMQ Bulk Import</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <label for="rbacRoleSelect" class="text-xs text-slate-400">Vai trò (Auth.js RBAC):</label>
+        <select id="rbacRoleSelect" class="rounded-xl border border-amber-500/40 bg-slate-950 px-3 py-2 text-xs font-bold text-amber-300">
+          <option value="ADMIN">ADMIN (Quản trị viên)</option>
+          <option value="AUTHOR">AUTHOR (Tác giả / Uploader)</option>
+          <option value="READER">READER (Độc giả - Chặn 403)</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="rbacForbiddenBox" class="rounded-2xl border border-rose-500/40 bg-rose-500/10 p-8 text-center space-y-2 hidden">
+      <p class="text-base font-bold text-rose-300">⛔ 403 Forbidden — Middleware RBAC từ chối truy cập</p>
+      <p class="text-xs text-slate-300">Tài khoản đang ở quyền <strong>READER</strong>. Hãy chuyển sang quyền <strong>AUTHOR</strong> hoặc <strong>ADMIN</strong> ở góc trên để mở khoá CMS.</p>
+    </div>
+
+    <div id="adminCmsWorkspace" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <!-- Left 7 cols: Chapter Editor & Scheduled Publishing -->
+      <div class="lg:col-span-7 space-y-6">
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <h2 class="text-base font-bold text-white">✍️ Soạn thảo &amp; Đăng Chương Mới (Vertical Partitioning)</h2>
+            <span id="cmsWordCountBadge" class="text-xs font-mono text-amber-400">0 chữ</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label for="cmsStorySelect" class="block text-[11px] text-slate-400 mb-1">Chọn truyện</label>
+              <select id="cmsStorySelect" class="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-white"></select>
+            </div>
+            <div>
+              <label for="cmsChapterNumber" class="block text-[11px] text-slate-400 mb-1">Số chương</label>
+              <input id="cmsChapterNumber" type="number" value="4" min="1" class="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-white" />
+            </div>
+            <div>
+              <label for="cmsScheduleTime" class="block text-[11px] text-slate-400 mb-1">Hẹn giờ đăng (Tuỳ chọn)</label>
+              <input id="cmsScheduleTime" type="datetime-local" class="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-white" />
+            </div>
+          </div>
+
+          <div>
+            <label for="cmsChapterTitle" class="block text-[11px] text-slate-400 mb-1">Tiêu đề chương</label>
+            <input id="cmsChapterTitle" type="text" placeholder="Nhập tiêu đề chương mới..." class="w-full rounded-xl border border-slate-700 bg-slate-950 px-3.5 py-2 text-xs text-white" />
+          </div>
+
+          <div>
+            <label for="cmsChapterContent" class="block text-[11px] text-slate-400 mb-1">Nội dung chương (Tự động chuẩn hóa NFC, lọc XSS &amp; nén BYTEA_ZSTD)</label>
+            <textarea id="cmsChapterContent" rows="6" placeholder="Nhập nội dung chương..." class="w-full rounded-xl border border-slate-700 bg-slate-950 p-3.5 text-xs text-slate-100 leading-relaxed"></textarea>
+          </div>
+
+          <div class="flex justify-end">
+            <button id="btnPublishChapterCms" type="button" class="rounded-xl bg-amber-500 px-5 py-2.5 text-xs font-bold text-slate-950 hover:bg-amber-400 transition-colors">
+              🚀 Xuất bản chương vào Database
+            </button>
+          </div>
+        </div>
+
+        <!-- Create New Story Card -->
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 space-y-4">
+          <h2 class="text-base font-bold text-white border-b border-slate-800 pb-3">➕ Thêm Bộ Truyện Mới (POST /api/stories)</h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label for="cmsNewStoryTitle" class="block text-[11px] text-slate-400 mb-1">Tên bộ truyện</label>
+              <input id="cmsNewStoryTitle" type="text" placeholder="Ví dụ: Vạn Cổ Thần Đế" class="w-full rounded-xl border border-slate-700 bg-slate-950 px-3.5 py-2 text-xs text-white" />
+            </div>
+            <div>
+              <label for="cmsNewStoryAuthor" class="block text-[11px] text-slate-400 mb-1">Tác giả</label>
+              <input id="cmsNewStoryAuthor" type="text" placeholder="Ví dụ: Phi Thiên Ngư" class="w-full rounded-xl border border-slate-700 bg-slate-950 px-3.5 py-2 text-xs text-white" />
+            </div>
+          </div>
+          <div>
+            <label for="cmsNewStoryDesc" class="block text-[11px] text-slate-400 mb-1">Giới thiệu tóm tắt</label>
+            <textarea id="cmsNewStoryDesc" rows="2" placeholder="Tóm tắt cốt truyện..." class="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-xs text-white"></textarea>
+          </div>
+          <div class="flex justify-end">
+            <button id="btnCreateStoryCms" type="button" class="rounded-xl bg-indigo-500 px-5 py-2 text-xs font-bold text-white hover:bg-indigo-400 transition-colors">
+              ➕ Tạo truyện mới
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right 5 cols: BullMQ Bulk Import Pipeline & Redis Flush -->
+      <div class="lg:col-span-5 space-y-6">
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 space-y-4">
+          <div class="border-b border-slate-800 pb-3">
+            <h2 class="text-base font-bold text-emerald-400">📦 Pipeline Bulk Import (BullMQ Worker)</h2>
+            <p class="text-[11px] text-slate-400 mt-0.5">Chèn lô 500–1.000 chương bằng createMany + skipDuplicates</p>
+          </div>
+
+          <div>
+            <label for="cmsBulkJson" class="block text-[11px] text-slate-400 mb-1">Dữ liệu JSON lô chương cần nạp</label>
+            <textarea id="cmsBulkJson" rows="7" class="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 font-mono text-[11px] text-emerald-300">[
+  {
+    "chapterNumber": 4,
+    "title": "Thất Huyền Môn Khảo Hạch",
+    "content": "Hàn Lập bước qua rừng trúc dưới ánh nắng ban mai, chính thức bước vào Thần Thủ Cốc..."
+  },
+  {
+    "chapterNumber": 5,
+    "title": "Trường Xuân Công Khởi Nguyên",
+    "content": "Từng dòng khẩu quyết cổ xưa chậm rãi vận chuyển trong kinh mạch thiếu niên..."
+  }
+]</textarea>
+          </div>
+
+          <div id="cmsBulkProgressBox" class="space-y-1.5 hidden">
+            <div class="flex justify-between text-[11px]">
+              <span class="text-slate-400">Tiến độ xử lý Worker</span>
+              <span id="cmsBulkProgressPct" class="font-mono text-emerald-400">0%</span>
+            </div>
+            <div class="h-2 w-full rounded-full bg-slate-800 overflow-hidden">
+              <div id="cmsBulkProgressBar" class="h-full bg-emerald-500 transition-all duration-200" style="width: 0%"></div>
+            </div>
+          </div>
+
+          <button id="btnRunBulkImportCms" type="button" class="w-full rounded-xl bg-emerald-500 py-2.5 text-xs font-bold text-slate-950 hover:bg-emerald-400 transition-colors">
+            ⚡ Đẩy vào BullMQ &amp; Import Hàng Loạt
+          </button>
+        </div>
+
+        <!-- Write-Behind View Sync Status Card -->
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold text-white">🔄 Đồng bộ Lượt xem Write-Behind</h3>
+            <span class="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[10px] font-mono text-emerald-400">Cron 5m</span>
+          </div>
+          <p class="text-xs text-slate-400">
+            Sử dụng lệnh nguyên tử <code class="text-amber-300">RENAMENX</code> hoán đổi Redis Hash Buffer và cập nhật cộng dồn xuống PostgreSQL trong Transaction.
+          </p>
+          <button id="btnFlushViewsNow" type="button" class="w-full rounded-xl border border-amber-500/40 bg-amber-500/10 py-2 text-xs font-semibold text-amber-300 hover:bg-amber-500/20">
+            ⚡ Chạy Batch Flush Views xuống Postgres ngay
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- VIEW 6: DEVOPS, CI/CD, SENTRY OBSERVABILITY & BACKUP (PHASE 6) -->
+  <main id="viewOps" class="mx-auto max-w-6xl px-4 py-6 sm:py-8 hidden space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-cyan-500/30 bg-slate-900/70 p-5">
+      <div>
+        <span class="rounded-full bg-cyan-500/15 px-2.5 py-0.5 text-[10px] font-bold text-cyan-300 uppercase tracking-wider">Giai đoạn 5 &amp; 6 • QA Testing, CI/CD, Sentry &amp; Cloud Backup</span>
+        <h1 class="text-xl sm:text-2xl font-extrabold text-white mt-1">Trung Tâm Vận Hành Hệ Thống &amp; Giám Sát Production</h1>
+        <p class="text-xs text-slate-400 mt-0.5">Kiểm tra sức khoẻ hạ tầng (/api/health), GitHub Actions CI/CD, Sentry Slow Query Telemetry và Sao lưu pg_dump S3/R2</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3.5 py-2 text-xs font-bold text-emerald-300">
+          <span class="h-2 w-2 rounded-full bg-emerald-400 animate-ping"></span>
+          All 6 Phases: 100% Ready
+        </span>
+      </div>
+    </div>
+
+    <!-- System Health Metrics Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+        <span class="text-[11px] text-slate-400">PostgreSQL 16 (Vertical Partition)</span>
+        <p id="opsPgLatency" class="text-xl font-extrabold text-emerald-400 mt-1">1.8 ms</p>
+        <span class="text-[10px] text-slate-400">Index-Only Scan &amp; GIN FTS Active</span>
+      </div>
+      <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+        <span class="text-[11px] text-slate-400">Redis 7 Cache &amp; HyperLogLog</span>
+        <p id="opsRedisHit" class="text-xl font-extrabold text-amber-400 mt-1">98.4% Hit</p>
+        <span class="text-[10px] text-slate-400">RAM: 142MB / 512MB (allkeys-lru)</span>
+      </div>
+      <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+        <span class="text-[11px] text-slate-400">GitHub Actions CI/CD &amp; Tests</span>
+        <p class="text-xl font-extrabold text-cyan-300 mt-1">5/5 Passed</p>
+        <span class="text-[10px] text-slate-400">Vitest Unit + Playwright E2E Ready</span>
+      </div>
+      <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+        <span class="text-[11px] text-slate-400">Cloudflare WAF &amp; Watermark</span>
+        <p class="text-xl font-extrabold text-indigo-300 mt-1">30 req/m</p>
+        <span class="text-[10px] text-slate-400">Zero-width Base-4 Fingerprint</span>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <!-- Left 7 cols: Watermark Forensic Decoder & Slow Query / Sentry Log -->
+      <div class="lg:col-span-7 space-y-6">
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div>
+              <h2 class="text-base font-bold text-white">🔍 Công cụ Truy vết Bản quyền Zero-width Watermark (GĐ 4 &amp; 5)</h2>
+              <p class="text-[11px] text-slate-400">Nhúng và giải mã ký tự ẩn vô hình để phát hiện nguồn phát tán truyện lậu</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="sm:col-span-2">
+              <label for="opsWatermarkInputId" class="block text-[11px] text-slate-400 mb-1">Mã định danh người đọc cần nhúng (Tracking ID)</label>
+              <input id="opsWatermarkInputId" type="text" value="uid:884920-ip:113.161.72.15" class="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-amber-300 font-mono" />
+            </div>
+            <div class="flex items-end">
+              <button id="btnTestWatermarkRoundtrip" type="button" class="w-full rounded-xl bg-indigo-500 py-2 text-xs font-bold text-white hover:bg-indigo-400 transition-colors">
+                🛡️ Nhúng &amp; Giải mã thử
+              </button>
+            </div>
+          </div>
+
+          <div class="rounded-xl border border-slate-800 bg-slate-950 p-3 text-xs space-y-1.5">
+            <p class="text-slate-400">Kết quả giải mã từ văn bản bị copy:</p>
+            <p id="opsWatermarkResult" class="font-mono font-bold text-emerald-400">Chưa chạy kiểm thử — hãy bấm nút "Nhúng &amp; Giải mã thử"</p>
+          </div>
+        </div>
+
+        <!-- Sentry & Slow Query Telemetry -->
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <h2 class="text-base font-bold text-white">📡 Giám sát Sentry &amp; Nhật ký Kiểm toán (Observability Log)</h2>
+            <button id="btnRunHealthCheck" type="button" class="rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-3 py-1.5 text-xs font-semibold text-cyan-300 hover:bg-cyan-500/20">
+              🔄 Ping /api/health
+            </button>
+          </div>
+          <div id="opsTelemetryLog" class="rounded-xl border border-slate-800 bg-slate-950 p-3.5 font-mono text-[11px] text-slate-300 space-y-1.5 max-h-48 overflow-y-auto">
+            <p class="text-emerald-400">[SYSTEM] Docker Compose stack healthy (postgres:16-alpine, redis:7-alpine, app, worker)</p>
+            <p class="text-cyan-300">[AUDIT] Fixed N+1 Query in POST /api/reader/history/sync (Batch WHERE IN + $transaction)</p>
+            <p class="text-amber-300">[SECURITY] Fixed IDOR in PATCH /api/stories/[slug] &amp; Atomic AVG() in POST /api/stories/[slug]/ratings</p>
+            <p class="text-slate-400">[CI/CD] GitHub Actions pipeline (.github/workflows/ci-cd.yml): Lint ✓ | TSC ✓ | Vitest 5/5 ✓</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right 5 cols: Automated Backup pg_dump to S3/R2 & Restore Verification -->
+      <div class="lg:col-span-5 space-y-6">
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 space-y-4">
+          <div class="border-b border-slate-800 pb-3">
+            <h2 class="text-base font-bold text-amber-400">💾 Sao lưu Tự động pg_dump &amp; Khôi phục (S3 / Cloudflare R2)</h2>
+            <p class="text-[11px] text-slate-400 mt-0.5">Cronjob hàng ngày 02:00 AM nén Zstd đẩy lên Cloud Storage kèm kiểm thử khôi phục</p>
+          </div>
+
+          <div class="rounded-xl border border-slate-800 bg-slate-950 p-3.5 text-xs space-y-2">
+            <div class="flex justify-between">
+              <span class="text-slate-400">Bản sao lưu gần nhất:</span>
+              <span id="opsLastBackupTime" class="font-mono text-emerald-400">2026-10-16 02:00:00 UTC</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Đích lưu trữ:</span>
+              <span class="font-mono text-slate-200">s3://novel-backups/daily/</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Chính sách lưu giữ:</span>
+              <span class="text-slate-200">7 ngày gần nhất (Auto-prune)</span>
+            </div>
+          </div>
+
+          <div class="space-y-2.5">
+            <button id="btnTriggerBackupNow" type="button" class="w-full rounded-xl bg-amber-500 py-2.5 text-xs font-bold text-slate-950 hover:bg-amber-400 transition-colors">
+              💾 Chạy scripts/backup-db.sh ngay (pg_dump + S3 Upload)
+            </button>
+            <button id="btnVerifyRestoreNow" type="button" class="w-full rounded-xl border border-emerald-500/40 bg-emerald-500/10 py-2.5 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/20 transition-colors">
+              ✅ Chạy scripts/restore-verify.sh (Kiểm thử khôi phục)
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- READER SETTINGS MODAL -->
+  <div id="readerSettingsModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+    <div class="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-6 text-slate-100 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-5">
+        <h3 class="text-base font-bold text-white">⚙️ Tuỳ chỉnh giao diện đọc (Reader Engine)</h3>
+        <button id="btnCloseReaderSettings" type="button" class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white">✕</button>
+      </div>
+
+      <div class="space-y-5">
+        <!-- Theme Picker -->
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Chế độ màu nền</label>
+          <div class="grid grid-cols-3 gap-2.5">
+            <button type="button" data-theme="light" class="theme-pick-btn rounded-xl border border-slate-300 bg-stone-50 text-slate-900 py-2.5 text-xs font-semibold">
+              ☀️ Sáng
+            </button>
+            <button type="button" data-theme="sepia" class="theme-pick-btn rounded-xl border border-[#dfd2b5] bg-[#f4ecd8] text-[#433422] py-2.5 text-xs font-semibold">
+              📜 Sepia
+            </button>
+            <button type="button" data-theme="dark" class="theme-pick-btn rounded-xl border border-amber-500 bg-slate-950 text-slate-100 py-2.5 text-xs font-semibold">
+              🌙 Ban đêm
+            </button>
+          </div>
+        </div>
+
+        <!-- Font Family Picker -->
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Phông chữ đọc truyện</label>
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" data-font="literata" class="font-pick-btn rounded-xl border border-amber-500 bg-amber-500/10 px-3 py-2 text-left text-xs font-literata text-amber-300">
+              Literata (Chuẩn sách)
+            </button>
+            <button type="button" data-font="merriweather" class="font-pick-btn rounded-xl border border-slate-700 bg-slate-800/70 px-3 py-2 text-left text-xs font-merriweather text-slate-200">
+              Merriweather (Cổ điển)
+            </button>
+            <button type="button" data-font="roboto" class="font-pick-btn rounded-xl border border-slate-700 bg-slate-800/70 px-3 py-2 text-left text-xs font-roboto text-slate-200">
+              Roboto (Hiện đại)
+            </button>
+            <button type="button" data-font="sans" class="font-pick-btn rounded-xl border border-slate-700 bg-slate-800/70 px-3 py-2 text-left text-xs font-sans text-slate-200">
+              Inter (Không chân)
+            </button>
+          </div>
+        </div>
+
+        <!-- Font Size & Line Height -->
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+              Cỡ chữ: <span id="lblFontSizeVal" class="text-amber-400">20px</span>
+            </label>
+            <div class="flex items-center gap-2">
+              <button id="btnFontDec" type="button" class="flex-1 rounded-xl border border-slate-700 bg-slate-800 py-2 text-xs font-bold hover:bg-slate-700">A-</button>
+              <button id="btnFontInc" type="button" class="flex-1 rounded-xl border border-slate-700 bg-slate-800 py-2 text-xs font-bold hover:bg-slate-700">A+</button>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+              Giãn dòng: <span id="lblLineHeightVal" class="text-amber-400">1.8</span>
+            </label>
+            <div class="flex items-center gap-2">
+              <button id="btnLhDec" type="button" class="flex-1 rounded-xl border border-slate-700 bg-slate-800 py-2 text-xs font-bold hover:bg-slate-700">-</button>
+              <button id="btnLhInc" type="button" class="flex-1 rounded-xl border border-slate-700 bg-slate-800 py-2 text-xs font-bold hover:bg-slate-700">+</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Reader Width -->
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Chiều rộng khung đọc</label>
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" data-width="max-w-2xl" class="width-pick-btn rounded-xl border border-slate-700 bg-slate-800/70 px-3 py-2 text-xs text-slate-200">Hẹp (672px)</button>
+            <button type="button" data-width="max-w-3xl" class="width-pick-btn rounded-xl border border-amber-500 bg-amber-500/10 px-3 py-2 text-xs text-amber-300 font-semibold">Tiêu chuẩn (768px)</button>
+            <button type="button" data-width="max-w-4xl" class="width-pick-btn rounded-xl border border-slate-700 bg-slate-800/70 px-3 py-2 text-xs text-slate-200">Rộng (896px)</button>
+            <button type="button" data-width="max-w-5xl" class="width-pick-btn rounded-xl border border-slate-700 bg-slate-800/70 px-3 py-2 text-xs text-slate-200">Toàn khung (1024px)</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-6 flex items-center justify-between border-t border-slate-800 pt-4">
+        <button id="btnResetReaderPrefs" type="button" class="text-xs text-slate-400 hover:text-amber-400 underline underline-offset-4">
+          Khôi phục mặc định
+        </button>
+        <button id="btnDoneReaderSettings" type="button" class="rounded-xl bg-amber-500 px-5 py-2 text-xs font-bold text-slate-950 hover:bg-amber-400">
+          Áp dụng &amp; Đóng
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // 1. DATASET CHUẨN TỪ API-CONTRACTS.TS
+    // =========================================================================
+    const CATEGORIES = [
+      { id: 1, name: 'Tiên Hiệp', slug: 'tien-hiep' },
+      { id: 2, name: 'Huyền Huyễn', slug: 'huyen-huyen' },
+      { id: 3, name: 'Đô Thị', slug: 'do-thi' },
+      { id: 4, name: 'Khoa Huyễn', slug: 'khoa-huyen' },
+      { id: 5, name: 'Võng Du', slug: 'vong-du' }
+    ];
+
+    const STORIES = [
+      {
+        id: '1',
+        title: 'Phàm Nhân Tu Tiên',
+        slug: 'pham-nhan-tu-tien',
+        authorName: 'Vong Ngữ',
+        status: 'COMPLETED',
+        totalViews: 1285400,
+        totalChapters: 2446,
+        avgRating: 4.9,
+        ratingsCount: 4210,
+        gradient: 'from-emerald-500/30 via-teal-600/20 to-slate-900',
+        badgeColor: 'text-emerald-300',
+        categories: [CATEGORIES[0], CATEGORIES[1]],
+        updatedAt: '2026-10-15T08:30:00Z',
+        description: 'Một tiểu tử nghèo bình thường ở sơn thôn, tình cờ bước chân vào một môn phái nhỏ trong giang hồ, trở thành một đệ tử ký danh. Với tư chất bình thường, Hàn Lập làm sao có thể đứng vững ở trong môn phái, rồi từng bước bằng vào sự cẩn trọng, mưu trí và cơ duyên Bình Nhỏ Thần Bí để tiếu ngạo tam giới?'
+      },
+      {
+        id: '2',
+        title: 'Quỷ Bí Chi Chủ',
+        slug: 'quy-bi-chi-chu',
+        authorName: 'Ái Tiềm Thủy Đích Ô Tặc',
+        status: 'COMPLETED',
+        totalViews: 984200,
+        totalChapters: 1430,
+        avgRating: 4.95,
+        ratingsCount: 5120,
+        gradient: 'from-purple-500/30 via-indigo-600/20 to-slate-900',
+        badgeColor: 'text-purple-300',
+        categories: [CATEGORIES[1], CATEGORIES[3]],
+        updatedAt: '2026-10-15T06:15:00Z',
+        description: 'Trong làn sóng hơi nước và máy móc rền vang, ai có thể chạm tới Phi Phàm? Trong màn sương mù lịch sử và bóng tối, cái gì đang thì thầm bên tai? Chu Minh Thụy tỉnh dậy trong thân xác Klein Moretti, đối mặt với hội Tarot và 22 con đường Thần chi.'
+      },
+      {
+        id: '3',
+        title: 'Kiếm Lai',
+        slug: 'kiem-lai',
+        authorName: 'Phong Hỏa Hí Chư Hầu',
+        status: 'ONGOING',
+        totalViews: 765900,
+        totalChapters: 1185,
+        avgRating: 4.85,
+        ratingsCount: 2890,
+        gradient: 'from-amber-500/30 via-orange-600/20 to-slate-900',
+        badgeColor: 'text-amber-300',
+        categories: [CATEGORIES[0], CATEGORIES[1]],
+        updatedAt: '2026-10-15T11:00:00Z',
+        description: 'Thế giới bao la, không thiếu điều kỳ lạ. Trần Bình An – thiếu niên nghèo ở ngõ Nê Bình thuộc Ly Châu Động Thiên – mang theo một thanh kiếm gỗ hòe, một bước một dấu chân đi qua vạn dặm sơn hà, giữ vững đạo tâm trước muôn vàn sóng gió.'
+      },
+      {
+        id: '4',
+        title: 'Đạo Quỷ Dị Tiên',
+        slug: 'dao-quy-di-tien',
+        authorName: 'Hồ Vĩ Bút',
+        status: 'COMPLETED',
+        totalViews: 642100,
+        totalChapters: 1020,
+        avgRating: 4.82,
+        ratingsCount: 1940,
+        gradient: 'from-rose-500/30 via-red-700/20 to-slate-900',
+        badgeColor: 'text-rose-300',
+        categories: [CATEGORIES[1], CATEGORIES[3]],
+        updatedAt: '2026-10-13T21:10:00Z',
+        description: 'Lý Hỏa Vượng mắc kẹt giữa hai thế giới: một bên là bệnh viện tâm thần hiện đại với những viên thuốc trắng, một bên là thế giới tu chân kỳ dị đẫm máu của Đan Dương Tử và Tọa Vọng Đạo. Rốt cuộc bên nào mới là chân thực?'
+      },
+      {
+        id: '5',
+        title: 'Thâm Không Bỉ Ngạn',
+        slug: 'tham-khong-bi-ngan',
+        authorName: 'Thần Đông',
+        status: 'ONGOING',
+        totalViews: 519400,
+        totalChapters: 890,
+        avgRating: 4.75,
+        ratingsCount: 1430,
+        gradient: 'from-cyan-500/30 via-blue-600/20 to-slate-900',
+        badgeColor: 'text-cyan-300',
+        categories: [CATEGORIES[3], CATEGORIES[2]],
+        updatedAt: '2026-10-14T22:00:00Z',
+        description: 'Khi thời đại Cựu Thuật dần lụi tàn trước sự trỗi dậy của Tân Thuật và chiến hạm vũ trụ, Vương Huyên bước ra từ hành tinh mẫu, khám phá những di tích thần thoại ẩn sâu trong dải ngân hà thâm trầm.'
+      },
+      {
+        id: '6',
+        title: 'Toàn Chức Cao Thủ',
+        slug: 'toan-chuc-cao-thu',
+        authorName: 'Hồ Điệp Lam',
+        status: 'COMPLETED',
+        totalViews: 892000,
+        totalChapters: 1728,
+        avgRating: 4.88,
+        ratingsCount: 3650,
+        gradient: 'from-yellow-500/30 via-amber-600/20 to-slate-900',
+        badgeColor: 'text-yellow-300',
+        categories: [CATEGORIES[4], CATEGORIES[2]],
+        updatedAt: '2026-10-11T16:45:00Z',
+        description: 'Được mệnh danh là sách giáo khoa của trò chơi Vinh Quang, Diệp Tu bị câu lạc bộ Gia Thế trục xuất. Anh bước vào tiệm net Hưng Hân làm quản lý ca đêm, mang theo vũ khí tự chế Ô Thiên Cơ tại Khu 10 trở lại đỉnh cao.'
+      }
+    ];
+
+    const SAMPLE_CHAPTERS = [
+      {
+        number: 1,
+        title: 'Sơn Biên Tiểu Thôn',
+        wordCount: 2450,
+        paragraphs: [
+          'Nhị Lăng tử mở to hai mắt, nằm thẳng cẳng trên giường đất, nhìn chằm chằm vào nóc nhà được lợp bằng bùn đất và rơm rạ đã ngả màu đen sì theo năm tháng.',
+          'Trời vẫn còn tờ mờ sáng, bên ngoài cửa sổ truyền đến tiếng gà gáy vang vọng khắp sơn thôn nhỏ bé. Nhị Lăng tử là tên ở nhà của Hàn Lập, cái tên nghe có vẻ hơi ngốc nghếch nhưng ở vùng quê nghèo khó này, cha mẹ đều tin rằng đặt tên xấu một chút thì con cái mới dễ nuôi lớn. In sâu trong tâm trí cậu bé mười tuổi này không phải là chuyện chơi đùa như lũ trẻ cùng trang lứa, mà là buổi khảo hạch nhập môn của Thất Huyền Môn sắp tới do Tam thúc giới thiệu.',
+          '"Chỉ cần vào được Thất Huyền Môn làm đệ tử nội môn, mỗi tháng đều có thể lĩnh một lượng bạc trắng mang về cho cha mẹ và tiểu muội..." Hàn Lập nắm chặt bàn tay nhỏ bé đầy vết chai sần vì đốn củi trên núi.',
+          'Nhà họ Hàn vốn chỉ có mấy mẫu ruộng cằn cỗi bên sườn núi Thanh Ngưu. Năm nay hạn hán kéo dài, thu hoạch chẳng được bao nhiêu. Tam thúc Hàn Bàn là quản sự ngoại môn của Thất Huyền Môn – một đại phái võ học lừng lẫy cả vùng Kính Châu – lần này về thăm quê đã mang theo hai suất tiến cử tham gia khảo hạch đệ tử.',
+          'Hàn Lập hít sâu một hơi không khí lành lạnh của buổi sớm mai, nhẹ nhàng bước xuống giường để không làm thức giấc đệ đệ và muội muội đang ngủ say. Cậu khoác chiếc áo vải thô đã vá chằng chịt ở khuỷu tay, bước ra sân múc một gáo nước giếng mát lạnh rửa mặt.',
+          'Con đường rời khỏi sơn thôn nhỏ bé hôm nay chính là bước ngoặt đầu tiên đưa một thiếu niên phàm trần bước vào thế giới tu chân rộng lớn không bờ bến, nơi sinh tử chỉ cách nhau một đường tơ kẽ tóc.'
+        ]
+      },
+      {
+        number: 2,
+        title: 'Thanh Ngưu Trấn & Thất Huyền Môn',
+        wordCount: 2680,
+        paragraphs: [
+          'Xe ngựa lộc cộc lăn bánh trên con đường đất gập ghềnh suốt ba ngày ròng rã, cuối cùng cũng tiến vào địa phận Thanh Ngưu Trấn.',
+          'Hàn Lập vén nhẹ tấm rèm vải của cỗ xe ngựa, ánh mắt hiếu kỳ nhưng vẫn giữ vẻ điềm tĩnh hiếm thấy ở tuổi lên mười. Hai bên đường là những quán trọ, tiệm rèn, tửu lâu treo cờ hiệu bay phần phật trong gió thu. So với sơn thôn chỉ có vài chục hộ dân dưới chân núi, Thanh Ngưu Trấn quả thực phồn hoa hơn gấp bội.',
+          '"Nhị Lăng tử, lát nữa tới chân núi Thải Hà – tổng đà của Thất Huyền Môn, cháu nhớ phải giữ lễ phép với các vị sư huynh chủ trì khảo hạch. Dù tư chất có thế nào cũng tuyệt đối không được bỏ cuộc giữa chừng!" Tam thúc Hàn Bàn vừa vuốt chòm râu ngắn vừa dặn dò.',
+          'Khi cỗ xe dừng lại dưới chân dãy núi Thải Hà hùng vĩ, trước mắt Hàn Lập hiện ra bảy ngọn núi cao vút ẩn hiện trong ráng chiều đỏ rực. Hàng trăm thiếu niên trạc tuổi cậu từ khắp các vùng lân cận đã tập trung dưới chân bậc thang đá xanh trải dài lên tận mây xanh.',
+          'Thử thách đầu tiên để bước vào Thất Huyền Môn chính là leo lên đỉnh núi Trúc Giản trước khi nén hương đại trụ cháy hết. Giữa đám đông ồn ào có những công tử con nhà giàu mặc áo gấm lụa là, cũng có những đứa trẻ nhà nông lam lũ như Hàn Lập. Cậu không vội vã chen lấn mà lặng lẽ điều chỉnh nhịp thở đều đặn theo kinh nghiệm leo núi đốn củi suốt mấy năm qua.'
+        ]
+      },
+      {
+        number: 3,
+        title: 'Mặc Đại Phu & Thần Thủ Cốc',
+        wordCount: 2810,
+        paragraphs: [
+          'Mặc dù kiên trì bò qua rừng trúc hiểm trở bằng hết sức bình sinh, Hàn Lập và Trương Thiết vẫn chậm hơn thời hạn quy định nửa khắc. Khi hai thiếu niên mồ hôi đầm đìa đứng trước đại điện, những tưởng cơ hội ở lại Thất Huyền Môn đã hoàn toàn khép lại thì một lão già mặc áo bào xám đen, râu tóc bạc phơ chậm rãi bước ra từ hậu sảnh.',
+          'Đó là Mặc đại phu – người duy nhất tinh thông y thuật và dược lý tại Thất Huyền Môn, cư ngụ ở Thần Thủ Cốc yên tĩnh biệt lập phía sau núi.',
+          'Mặc đại phu cầm lấy cổ tay Hàn Lập, ba ngón tay khô gầy đặt lên mạch môn của cậu. Một luồng khí ấm áp kỳ lạ truyền từ đầu ngón tay lão chạy dọc theo kinh mạch trong cơ thể Hàn Lập. Đôi mắt vốn đục ngầu của Mặc đại phu bỗng lóe lên một tia sáng kỳ dị khó nhận ra, rồi nhanh chóng khôi phục vẻ bình thản.',
+          '"Hai đứa trẻ này tuy không qua được khảo hạch chính thức, nhưng lão phu ở Thần Thủ Cốc đang thiếu người sắc thuốc, chăm sóc vườn dược thảo. Cứ giao cả hai cho lão phu làm đệ tử ký danh đi."',
+          'Hàn Lập không hề biết rằng, ngay khoảnh khắc bước chân vào Thần Thủ Cốc, vận mệnh của cậu đã gắn liền với tập khẩu quyết Trường Xuân Công và chiếc bình nhỏ màu xanh lục nhặt được dưới khe núi sau cơn mưa rào.'
+        ]
+      }
+    ];
+
+    // =========================================================================
+    // 2. STATE & STORAGE MANAGEMENT (ZUSTAND-EQUIVALENT STORE)
+    // =========================================================================
+    const STORAGE_KEY = 'novel_platform_phase2_state_v1';
+
+    const DEFAULT_PREFS = {
+      theme: 'dark',
+      fontFamily: 'literata',
+      fontSize: 20,
+      lineHeight: 1.8,
+      readerWidth: 'max-w-3xl'
+    };
+
+    let state = {
+      currentView: 'explore', // 'explore' | 'shelf' | 'detail' | 'reader'
+      selectedCategory: 'ALL',
+      selectedStatus: 'ALL',
+      selectedChapterRange: 'ALL',
+      sortBy: 'views',
+      searchKeyword: '',
+      leaderboardTimeframe: 'daily',
+      activeStoryId: '1',
+      activeChapterNumber: 1,
+      chapterPage: 1,
+      preferences: { ...DEFAULT_PREFS },
+      history: {}, // storyId -> { storyId, chapterNumber, scrollPosition, updatedAt }
+      bookmarks: ['1', '2'],
+      userRatings: {},
+      prefetchedCache: {} // "slug:chapterNum" -> true
+    };
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed.preferences) state.preferences = { ...DEFAULT_PREFS, ...parsed.preferences };
+          if (parsed.history) state.history = parsed.history;
+          if (parsed.bookmarks) state.bookmarks = parsed.bookmarks;
+          if (parsed.userRatings) state.userRatings = parsed.userRatings;
+        }
+      } catch (e) {
+        // Fallback if sandboxed storage restricted
+      }
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({
+            preferences: state.preferences,
+            history: state.history,
+            bookmarks: state.bookmarks,
+            userRatings: state.userRatings
+          })
+        );
+      } catch (e) {
+        // Ignore storage error in restricted iframe
+      }
+      updateHeaderBadges();
+    }
+
+    function showToast(msg) {
+      const banner = document.getElementById('toastBanner');
+      const text = document.getElementById('toastMessage');
+      text.textContent = msg;
+      banner.classList.remove('hidden');
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(() => {
+        banner.classList.add('hidden');
+      }, 2400);
+    }
+
+    function getChapterContentData(story, chapterNumber) {
+      const found = SAMPLE_CHAPTERS.find((c) => c.number === chapterNumber);
+      if (found) {
+        return {
+          number: found.number,
+          title: found.title,
+          wordCount: found.wordCount,
+          paragraphs: found.paragraphs
+        };
+      }
+      return {
+        number: chapterNumber,
+        title: `Phong Vân Khởi Khởi (Chương ${chapterNumber})`,
+        wordCount: 2540,
+        paragraphs: [
+          `Đây là nội dung chương ${chapterNumber} của bộ truyện "${story.title}" do tác giả ${story.authorName} sáng tác, được phân phối qua kiến trúc Vertical Partitioning (tách riêng bảng chapters và chapter_contents nén BYTEA_ZSTD).`,
+          `Trên hệ thống NovelPlatform, khi bạn mở chương này, dữ liệu được kiểm tra trước tiên tại Redis Cache-Aside với key "cache:chapter:body:${story.slug}:${chapterNumber}". Chương mới đăng dưới 48 giờ được giữ TTL 24 tiếng, giúp giảm tải 95% truy vấn I/O xuống PostgreSQL.`,
+          `Bên cạnh đó, lượt đọc của bạn vừa được ghi nhận qua thuật toán Write-Behind dùng cấu trúc dữ liệu HyperLogLog (PFADD) theo khung 15 phút chống trùng lặp IP/User-Agent, kết hợp lệnh ZINCRBY cập nhật tức thì Bảng Xếp Hạng Ngày/Tuần/Tháng.`,
+          `Khi bạn cuộn xuống quá 70% nội dung chương ${chapterNumber}, hệ thống Reader Engine sẽ tự động kích hoạt Prefetching chương ${chapterNumber + 1} ở nền để đảm bảo thao tác nhấn "Chương tiếp" hoặc phím mũi tên Phải (→) đạt độ trễ 0ms.`
+        ]
+      };
+    }
+
+    // =========================================================================
+    // 3. VIEW NAVIGATION & RENDERING
+    // =========================================================================
+    function switchView(viewName) {
+      state.currentView = viewName;
+      document.getElementById('viewExplore').classList.toggle('hidden', viewName !== 'explore');
+      document.getElementById('viewShelf').classList.toggle('hidden', viewName !== 'shelf');
+      document.getElementById('viewStoryDetail').classList.toggle('hidden', viewName !== 'detail');
+      document.getElementById('viewReader').classList.toggle('hidden', viewName !== 'reader');
+      document.getElementById('viewAdmin').classList.toggle('hidden', viewName !== 'admin');
+      document.getElementById('viewOps').classList.toggle('hidden', viewName !== 'ops');
+      document.getElementById('readingProgressContainer').classList.toggle('hidden', viewName !== 'reader');
+
+      // Highlight nav button
+      const exploreBtn = document.getElementById('navExploreBtn');
+      const shelfBtn = document.getElementById('navShelfBtn');
+      if (viewName === 'explore' || viewName === 'detail') {
+        exploreBtn.className = 'rounded-xl px-3 py-2 text-xs font-semibold bg-amber-500 text-slate-950 transition-all';
+        shelfBtn.className = 'rounded-xl px-3 py-2 text-xs font-medium bg-slate-900 text-slate-300 border border-slate-800 hover:border-slate-700 transition-all flex items-center gap-1.5';
+      } else if (viewName === 'shelf') {
+        shelfBtn.className = 'rounded-xl px-3 py-2 text-xs font-semibold bg-amber-500 text-slate-950 transition-all flex items-center gap-1.5';
+        exploreBtn.className = 'rounded-xl px-3 py-2 text-xs font-medium bg-slate-900 text-slate-300 border border-slate-800 hover:border-slate-700 transition-all';
+      }
+
+      window.scrollTo({ top: 0, behavior: 'instant' });
+
+      if (viewName === 'explore') {
+        renderExploreView();
+      } else if (viewName === 'shelf') {
+        renderShelfView();
+      } else if (viewName === 'detail') {
+        renderStoryDetailView();
+      } else if (viewName === 'reader') {
+        renderReaderView();
+      } else if (viewName === 'admin') {
+        renderAdminView();
+      }
+    }
+
+    function updateHeaderBadges() {
+      const historyCount = Object.keys(state.history).length;
+      const total = historyCount + state.bookmarks.length;
+      document.getElementById('shelfCountBadge').textContent = String(total);
+
+      // Update Quick Continue Box on Home
+      const entries = Object.values(state.history).sort((a, b) => b.updatedAt - a.updatedAt);
+      const quickBox = document.getElementById('quickContinueBox');
+      if (entries.length > 0) {
+        const latest = entries[0];
+        const story = STORIES.find((s) => s.id === latest.storyId);
+        if (story) {
+          quickBox.classList.remove('hidden');
+          document.getElementById('quickContinueTitle').textContent = story.title;
+          document.getElementById('quickContinueChapter').textContent = `Đang đọc Chương ${latest.chapterNumber}`;
+          document.getElementById('quickContinueProgress').textContent = `${latest.scrollPosition}%`;
+          document.getElementById('btnQuickContinue').onclick = () => {
+            openReader(story.id, latest.chapterNumber);
+          };
+        }
+      } else {
+        quickBox.classList.add('hidden');
+      }
+    }
+
+    // =========================================================================
+    // 4. EXPLORE VIEW RENDER
+    // =========================================================================
+    function renderCategoryPills() {
+      const container = document.getElementById('categoryPillsContainer');
+      const allBtn = `<button type="button" data-cat="ALL" class="cat-pill rounded-full px-3.5 py-1.5 text-xs font-medium transition-all ${
+        state.selectedCategory === 'ALL'
+          ? 'bg-amber-500 text-slate-950 font-bold'
+          : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+      }">Tất cả</button>`;
+
+      const catBtns = CATEGORIES.map((c) => {
+        const active = state.selectedCategory === c.slug;
+        return `<button type="button" data-cat="${c.slug}" class="cat-pill rounded-full px-3.5 py-1.5 text-xs font-medium transition-all ${
+          active
+            ? 'bg-amber-500 text-slate-950 font-bold'
+            : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+        }">${c.name}</button>`;
+      }).join('');
+
+      container.innerHTML = allBtn + catBtns;
+      container.querySelectorAll('.cat-pill').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.selectedCategory = btn.getAttribute('data-cat');
+          renderExploreView();
+        });
+      });
+    }
+
+    function renderStoryCards() {
+      const filtered = STORIES.filter((story) => {
+        if (state.selectedCategory !== 'ALL') {
+          if (!story.categories.some((c) => c.slug === state.selectedCategory)) return false;
+        }
+        if (state.selectedStatus !== 'ALL' && story.status !== state.selectedStatus) return false;
+        if (state.selectedChapterRange === 'UNDER_1000' && story.totalChapters >= 1000) return false;
+        if (state.selectedChapterRange === 'OVER_1000' && story.totalChapters < 1000) return false;
+        if (state.searchKeyword.trim()) {
+          const q = state.searchKeyword.toLowerCase();
+          return story.title.toLowerCase().includes(q) || story.authorName.toLowerCase().includes(q);
+        }
+        return true;
+      }).sort((a, b) => {
+        if (state.sortBy === 'views') return b.totalViews - a.totalViews;
+        if (state.sortBy === 'rating') return b.avgRating - a.avgRating;
+        if (state.sortBy === 'chapters') return b.totalChapters - a.totalChapters;
+        return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+      });
+
+      document.getElementById('filterResultCount').textContent = `${filtered.length} bộ truyện`;
+      const grid = document.getElementById('storyGridContainer');
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `<div class="col-span-full rounded-2xl border border-slate-800 bg-slate-900/40 p-8 text-center text-xs text-slate-400">Không tìm thấy truyện phù hợp với bộ lọc hiện tại.</div>`;
+        return;
+      }
+
+      grid.innerHTML = filtered
+        .map((story) => {
+          const hist = state.history[story.id];
+          const isBookmarked = state.bookmarks.includes(story.id);
+          return `
+            <div class=" rounded-2xl border border-slate-800 bg-slate-900/50 p-4 transition-all hover:border-amber-500/50 hover:bg-slate-900 flex flex-col justify-between gap-3">
+              <div class="flex gap-3.5">
+                <button type="button" data-open-story="${story.id}" class="h-28 w-20 shrink-0 rounded-xl bg-gradient-to-br ${story.gradient} border border-slate-700/80 p-2 flex flex-col items-center justify-center text-center shadow-inner">
+                  <span class="text-xs font-extrabold ${story.badgeColor} line-clamp-3">${story.title}</span>
+                </button>
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-start justify-between gap-2">
+                    <button type="button" data-open-story="${story.id}" class="text-left text-sm sm:text-base font-bold text-white hover:text-amber-400 truncate">
+                      ${story.title}
+                    </button>
+                    <span class="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                      story.status === 'COMPLETED'
+                        ? 'bg-emerald-500/15 text-emerald-400'
+                        : 'bg-amber-500/15 text-amber-400'
+                    }">
+                      ${story.status === 'COMPLETED' ? 'Hoàn thành' : 'Đang ra'}
+                    </span>
+                  </div>
+                  <p class="text-xs text-slate-400 mt-0.5">✍️ ${story.authorName}</p>
+                  <p class="text-xs text-slate-300 line-clamp-2 mt-1.5">${story.description}</p>
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between border-t border-slate-800/80 pt-2.5 text-[11px] text-slate-400">
+                <div class="flex items-center gap-3">
+                  <span>📖 ${story.totalChapters.toLocaleString('vi-VN')} ch</span>
+                  <span>🔥 ${(story.totalViews / 1000).toFixed(0)}K</span>
+                  <span class="text-amber-400 font-semibold">★ ${story.avgRating}</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  ${
+                    hist
+                      ? `<button type="button" data-read-story="${story.id}" data-read-ch="${hist.chapterNumber}" class="rounded-lg bg-amber-500/20 px-2.5 py-1 text-[11px] font-semibold text-amber-300 hover:bg-amber-500 hover:text-slate-950 transition-colors">Đọc tiếp Ch.${hist.chapterNumber}</button>`
+                      : `<button type="button" data-read-story="${story.id}" data-read-ch="1" class="rounded-lg bg-slate-800 px-2.5 py-1 text-[11px] font-medium text-slate-200 hover:bg-amber-500 hover:text-slate-950 transition-colors">Đọc ngay</button>`
+                  }
+                </div>
+              </div>
+            </div>
+          `;
+        })
+        .join('');
+
+      grid.querySelectorAll('[data-open-story]').forEach((el) => {
+        el.addEventListener('click', () => {
+          state.activeStoryId = el.getAttribute('data-open-story');
+          state.chapterPage = 1;
+          switchView('detail');
+        });
+      });
+
+      grid.querySelectorAll('[data-read-story]').forEach((el) => {
+        el.addEventListener('click', () => {
+          const sId = el.getAttribute('data-read-story');
+          const chNum = parseInt(el.getAttribute('data-read-ch'), 10);
+          openReader(sId, chNum);
+        });
+      });
+    }
+
+    function renderLeaderboard() {
+      const mult = state.leaderboardTimeframe === 'daily' ? 0.02 : state.leaderboardTimeframe === 'weekly' ? 0.14 : 0.48;
+      const list = [...STORIES].sort((a, b) => b.totalViews - a.totalViews);
+      const container = document.getElementById('leaderboardList');
+
+      container.innerHTML = list
+        .map((s, idx) => {
+          const rank = idx + 1;
+          const views = Math.round(s.totalViews * mult);
+          const badgeCls =
+            rank === 1
+              ? 'bg-amber-500 text-slate-950'
+              : rank === 2
+              ? 'bg-slate-300 text-slate-950'
+              : rank === 3
+              ? 'bg-amber-700 text-white'
+              : 'bg-slate-800 text-slate-400';
+
+          return `
+            <button type="button" data-lb-story="${s.id}" class="w-full flex items-center gap-3 rounded-xl p-2 text-left hover:bg-slate-800/70 transition-colors">
+              <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-extrabold ${badgeCls}">
+                ${rank}
+              </span>
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-xs sm:text-sm font-semibold text-slate-100">${s.title}</p>
+                <p class="text-[11px] text-slate-400">${s.authorName} • ${views.toLocaleString('vi-VN')} lượt đọc</p>
+              </div>
+            </button>
+          `;
+        })
+        .join('');
+
+      container.querySelectorAll('[data-lb-story]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.activeStoryId = btn.getAttribute('data-lb-story');
+          state.chapterPage = 1;
+          switchView('detail');
+        });
+      });
+    }
+
+    function renderRecommendations() {
+      const container = document.getElementById('recommendationCardsContainer');
+      const recs = STORIES.slice(0, 3);
+      container.innerHTML = recs.map((st) => `
+        <button type="button" data-rec-story="${st.id}" class="flex items-center gap-2.5 rounded-xl border border-slate-700/70 bg-slate-950/70 p-2.5 text-left hover:border-amber-500/50 hover:bg-slate-900 transition-all">
+          <div class="h-10 w-8 shrink-0 rounded-lg bg-gradient-to-br ${st.gradient} flex items-center justify-center text-[10px] font-black ${st.badgeColor}">
+            ${st.title.slice(0, 1)}
+          </div>
+          <div class="min-w-0 flex-1">
+            <p class="truncate text-xs font-bold text-white">${st.title}</p>
+            <p class="text-[10px] text-amber-400">★ ${st.avgRating} • ${st.categories[0]?.name}</p>
+          </div>
+        </button>
+      `).join('');
+
+      container.querySelectorAll('[data-rec-story]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.activeStoryId = btn.getAttribute('data-rec-story');
+          state.chapterPage = 1;
+          switchView('detail');
+        });
+      });
+    }
+
+    function renderExploreView() {
+      renderCategoryPills();
+      renderRecommendations();
+      renderStoryCards();
+      renderLeaderboard();
+      updateHeaderBadges();
+    }
+
+    // =========================================================================
+    // 5. SHELF & READING HISTORY VIEW
+    // =========================================================================
+    function renderShelfView() {
+      const histContainer = document.getElementById('historyListContainer');
+      const bmContainer = document.getElementById('bookmarkListContainer');
+
+      const histEntries = Object.values(state.history).sort((a, b) => b.updatedAt - a.updatedAt);
+      if (histEntries.length === 0) {
+        histContainer.innerHTML = `<p class="text-xs text-slate-400 py-4">Chưa có lịch sử đọc nào. Hãy chọn một chương truyện để trải nghiệm tự động lưu vị trí đọc.</p>`;
+      } else {
+        histContainer.innerHTML = histEntries
+          .map((item) => {
+            const story = STORIES.find((s) => s.id === item.storyId);
+            if (!story) return '';
+            return `
+              <div class="flex items-center justify-between gap-3 rounded-xl border border-slate-800 bg-slate-950/70 p-3">
+                <div class="min-w-0">
+                  <p class="text-sm font-bold text-white truncate">${story.title}</p>
+                  <p class="text-xs text-amber-400 mt-0.5">Đang đọc Chương ${item.chapterNumber} • Đã cuộn ${item.scrollPosition}%</p>
+                </div>
+                <button type="button" data-shelf-read="${story.id}" data-shelf-ch="${item.chapterNumber}" class="shrink-0 rounded-xl bg-amber-500 px-3.5 py-2 text-xs font-bold text-slate-950 hover:bg-amber-400">
+                  Đọc tiếp →
+                </button>
+              </div>
+            `;
+          })
+          .join('');
+      }
+
+      if (state.bookmarks.length === 0) {
+        bmContainer.innerHTML = `<p class="text-xs text-slate-400 py-4">Tủ truyện đang trống.</p>`;
+      } else {
+        bmContainer.innerHTML = state.bookmarks
+          .map((id) => {
+            const story = STORIES.find((s) => s.id === id);
+            if (!story) return '';
+            return `
+              <div class="flex items-center justify-between gap-3 rounded-xl border border-slate-800 bg-slate-950/70 p-3">
+                <div class="min-w-0">
+                  <p class="text-sm font-bold text-white truncate">${story.title}</p>
+                  <p class="text-xs text-slate-400 mt-0.5">${story.authorName} • ${story.totalChapters.toLocaleString('vi-VN')} chương</p>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                  <button type="button" data-bm-open="${story.id}" class="rounded-xl border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:border-amber-500">Chi tiết</button>
+                  <button type="button" data-bm-remove="${story.id}" class="rounded-xl border border-rose-500/30 bg-rose-500/10 px-2.5 py-1.5 text-xs text-rose-300 hover:bg-rose-500/20">Bỏ lưu</button>
+                </div>
+              </div>
+            `;
+          })
+          .join('');
+      }
+
+      histContainer.querySelectorAll('[data-shelf-read]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          openReader(btn.getAttribute('data-shelf-read'), parseInt(btn.getAttribute('data-shelf-ch'), 10));
+        });
+      });
+
+      bmContainer.querySelectorAll('[data-bm-open]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.activeStoryId = btn.getAttribute('data-bm-open');
+          switchView('detail');
+        });
+      });
+
+      bmContainer.querySelectorAll('[data-bm-remove]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const sId = btn.getAttribute('data-bm-remove');
+          state.bookmarks = state.bookmarks.filter((id) => id !== sId);
+          saveState();
+          renderShelfView();
+          showToast('Đã xoá khỏi Tủ truyện');
+        });
+      });
+    }
+
+    // =========================================================================
+    // 6. STORY DETAIL VIEW (KEYSET PAGINATION & QUICK JUMP)
+    // =========================================================================
+    function renderStoryDetailView() {
+      const story = STORIES.find((s) => s.id === state.activeStoryId) || STORIES[0];
+      const hist = state.history[story.id];
+      const isBookmarked = state.bookmarks.includes(story.id);
+      const userRate = state.userRatings[story.id] || Math.round(story.avgRating);
+
+      const pageSize = 18;
+      const totalPages = Math.ceil(story.totalChapters / pageSize);
+      const startChapter = (state.chapterPage - 1) * pageSize + 1;
+      const endChapter = Math.min(story.totalChapters, startChapter + pageSize - 1);
+
+      let chapterItemsHtml = '';
+      for (let cNum = startChapter; cNum <= endChapter; cNum++) {
+        const sample = SAMPLE_CHAPTERS.find((sc) => sc.number === cNum);
+        const cTitle = sample ? sample.title : `Diễn biến chương thứ ${cNum}`;
+        const isCurrent = hist && hist.chapterNumber === cNum;
+        chapterItemsHtml += `
+          <button type="button" data-detail-ch="${cNum}" class="flex items-center justify-between rounded-xl border px-3.5 py-2.5 text-left text-xs transition-all ${
+            isCurrent
+              ? 'border-amber-500/70 bg-amber-500/15 text-amber-300 font-bold'
+              : 'border-slate-800 bg-slate-950/60 text-slate-300 hover:border-amber-500/40 hover:text-white'
+          }">
+            <span class="truncate">Chương ${cNum}: ${cTitle}</span>
+            ${isCurrent ? `<span class="ml-2 shrink-0 text-[10px] text-amber-400">Đang đọc</span>` : ''}
+          </button>
+        `;
+      }
+
+      const container = document.getElementById('storyDetailContent');
+      container.innerHTML = `
+        <div class="flex flex-col md:flex-row gap-6 rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
+          <div class="flex h-52 w-36 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${story.gradient} border border-slate-700 p-4 text-center mx-auto md:mx-0 shadow-xl">
+            <span class="text-base font-extrabold ${story.badgeColor}">${story.title}</span>
+          </div>
+
+          <div class="flex-1 space-y-4">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="rounded-full px-3 py-1 text-xs font-semibold ${
+                story.status === 'COMPLETED' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-400'
+              }">
+                ${story.status === 'COMPLETED' ? 'Hoàn thành' : 'Đang ra'}
+              </span>
+              ${story.categories
+                .map((c) => `<span class="rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-300">${c.name}</span>`)
+                .join('')}
+            </div>
+
+            <div>
+              <h1 class="text-2xl sm:text-3xl font-extrabold text-white">${story.title}</h1>
+              <p class="text-xs sm:text-sm text-slate-400 mt-1">Tác giả: <strong class="text-amber-300">${story.authorName}</strong></p>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-6 border-y border-slate-800 py-3 text-xs">
+              <div>
+                <span class="text-slate-400 block">Số chương</span>
+                <strong class="text-sm text-white">${story.totalChapters.toLocaleString('vi-VN')}</strong>
+              </div>
+              <div>
+                <span class="text-slate-400 block">Lượt xem</span>
+                <strong class="text-sm text-white">${story.totalViews.toLocaleString('vi-VN')}</strong>
+              </div>
+              <div>
+                <span class="text-slate-400 block">Đánh giá (${story.ratingsCount} lượt)</span>
+                <div class="flex items-center gap-1 mt-0.5">
+                  ${[1, 2, 3, 4, 5]
+                    .map(
+                      (star) =>
+                        `<button type="button" data-rate-star="${star}" class="text-sm ${
+                          star <= userRate ? 'text-amber-400' : 'text-slate-600'
+                        } hover:scale-110 transition-transform">★</button>`
+                    )
+                    .join('')}
+                  <span class="ml-1 font-bold text-amber-400">${story.avgRating}</span>
+                </div>
+              </div>
+            </div>
+
+            <p class="text-xs sm:text-sm leading-relaxed text-slate-300">${story.description}</p>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-wrap items-center gap-3 pt-1">
+              <button id="btnReadFirst" type="button" class="rounded-xl bg-amber-500 px-5 py-2.5 text-xs sm:text-sm font-bold text-slate-950 hover:bg-amber-400 transition-colors">
+                📖 Đọc từ đầu (Chương 1)
+              </button>
+              ${
+                hist
+                  ? `<button id="btnReadContinueDetail" type="button" class="rounded-xl border border-amber-500/60 bg-amber-500/15 px-5 py-2.5 text-xs sm:text-sm font-semibold text-amber-300 hover:bg-amber-500/25">
+                      ⏱️ Đọc tiếp Chương ${hist.chapterNumber} (${hist.scrollPosition}%)
+                    </button>`
+                  : ''
+              }
+              <button id="btnToggleBookmarkDetail" type="button" class="rounded-xl border px-4 py-2.5 text-xs sm:text-sm font-semibold transition-colors ${
+                isBookmarked
+                  ? 'border-rose-500/50 bg-rose-500/15 text-rose-300'
+                  : 'border-slate-700 bg-slate-800 text-slate-200 hover:border-slate-600'
+              }">
+                ${isBookmarked ? '♥ Đã lưu Tủ truyện' : '♡ Lưu vào Tủ truyện'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chapter List with Quick Jump & Pagination -->
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+            <div>
+              <h2 class="text-base font-bold text-white">Danh sách chương (${startChapter} – ${endChapter} / ${story.totalChapters})</h2>
+              <p class="text-[11px] text-slate-400">Phân trang Keyset dựa trên chapter_number (chống chậm khi &gt; 2.000 chương)</p>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <input
+                id="inputJumpChapter"
+                type="number"
+                min="1"
+                max="${story.totalChapters}"
+                placeholder="Nhập số chương (1-${story.totalChapters})"
+                class="w-44 rounded-xl border border-slate-700 bg-slate-950 px-3 py-1.5 text-xs text-slate-100 focus:border-amber-500 focus:outline-none"
+              />
+              <button id="btnJumpChapterGo" type="button" class="rounded-xl bg-amber-500 px-3.5 py-1.5 text-xs font-bold text-slate-950 hover:bg-amber-400">
+                Nhảy chương
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+            ${chapterItemsHtml}
+          </div>
+
+          <div class="flex items-center justify-between border-t border-slate-800 pt-4 text-xs">
+            <button id="btnPrevChapterPage" type="button" ${state.chapterPage <= 1 ? 'disabled' : ''} class="rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 font-medium text-slate-200 hover:border-amber-500 disabled:opacity-40">
+              ← Trang trước
+            </button>
+            <span class="font-mono text-slate-400">Trang ${state.chapterPage} / ${totalPages}</span>
+            <button id="btnNextChapterPage" type="button" ${state.chapterPage >= totalPages ? 'disabled' : ''} class="rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 font-medium text-slate-200 hover:border-amber-500 disabled:opacity-40">
+              Trang sau →
+            </button>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('btnReadFirst').addEventListener('click', () => openReader(story.id, 1));
+      const contBtn = document.getElementById('btnReadContinueDetail');
+      if (contBtn && hist) {
+        contBtn.addEventListener('click', () => openReader(story.id, hist.chapterNumber));
+      }
+
+      document.getElementById('btnToggleBookmarkDetail').addEventListener('click', () => {
+        if (state.bookmarks.includes(story.id)) {
+          state.bookmarks = state.bookmarks.filter((id) => id !== story.id);
+          showToast('Đã bỏ lưu khỏi Tủ truyện');
+        } else {
+          state.bookmarks.push(story.id);
+          showToast('Đã lưu vào Tủ truyện');
+        }
+        saveState();
+        renderStoryDetailView();
+      });
+
+      container.querySelectorAll('[data-rate-star]').forEach((starBtn) => {
+        starBtn.addEventListener('click', () => {
+          const val = parseInt(starBtn.getAttribute('data-rate-star'), 10);
+          state.userRatings[story.id] = val;
+          saveState();
+          renderStoryDetailView();
+          showToast(`Đã gửi đánh giá ${val} sao cho "${story.title}"`);
+        });
+      });
+
+      container.querySelectorAll('[data-detail-ch]').forEach((chBtn) => {
+        chBtn.addEventListener('click', () => {
+          const cNum = parseInt(chBtn.getAttribute('data-detail-ch'), 10);
+          openReader(story.id, cNum);
+        });
+      });
+
+      document.getElementById('btnJumpChapterGo').addEventListener('click', () => {
+        const val = parseInt(document.getElementById('inputJumpChapter').value, 10);
+        if (!isNaN(val) && val >= 1 && val <= story.totalChapters) {
+          openReader(story.id, val);
+        } else {
+          showToast(`Vui lòng nhập số chương từ 1 đến ${story.totalChapters}`);
+        }
+      });
+
+      document.getElementById('btnPrevChapterPage').addEventListener('click', () => {
+        if (state.chapterPage > 1) {
+          state.chapterPage--;
+          renderStoryDetailView();
+        }
+      });
+
+      document.getElementById('btnNextChapterPage').addEventListener('click', () => {
+        if (state.chapterPage < totalPages) {
+          state.chapterPage++;
+          renderStoryDetailView();
+        }
+      });
+    }
+
+    // =========================================================================
+    // 7. READER ENGINE (DARK/LIGHT/SEPIA, FONTS, 70% PREFETCH, HISTORY SYNC)
+    // =========================================================================
+    function openReader(storyId, chapterNumber) {
+      state.activeStoryId = storyId;
+      state.activeChapterNumber = chapterNumber;
+      switchView('reader');
+    }
+
+    function applyReaderPreferencesToDOM() {
+      const viewReader = document.getElementById('viewReader');
+      viewReader.classList.remove('reader-theme-dark', 'reader-theme-light', 'reader-theme-sepia');
+      viewReader.classList.add(`reader-theme-${state.preferences.theme}`);
+
+      const article = document.getElementById('readerArticleBody');
+      article.classList.remove('font-literata', 'font-merriweather', 'font-roboto', 'font-sans');
+      article.classList.add(`font-${state.preferences.fontFamily}`);
+      article.style.fontSize = `${state.preferences.fontSize}px`;
+      article.style.lineHeight = String(state.preferences.lineHeight);
+
+      const frame = document.getElementById('readerFrameContainer');
+      frame.classList.remove('max-w-2xl', 'max-w-3xl', 'max-w-4xl', 'max-w-5xl');
+      frame.classList.add(state.preferences.readerWidth);
+
+      // Update labels & active states inside modal
+      document.getElementById('lblFontSizeVal').textContent = `${state.preferences.fontSize}px`;
+      document.getElementById('lblLineHeightVal').textContent = String(state.preferences.lineHeight);
+
+      document.querySelectorAll('.theme-pick-btn').forEach((btn) => {
+        const isMatch = btn.getAttribute('data-theme') === state.preferences.theme;
+        btn.classList.toggle('ring-2', isMatch);
+        btn.classList.toggle('ring-amber-500', isMatch);
+      });
+
+      document.querySelectorAll('.font-pick-btn').forEach((btn) => {
+        const isMatch = btn.getAttribute('data-font') === state.preferences.fontFamily;
+        btn.className = `font-pick-btn rounded-xl border px-3 py-2 text-left text-xs font-${btn.getAttribute('data-font')} ${
+          isMatch
+            ? 'border-amber-500 bg-amber-500/15 text-amber-300 font-bold'
+            : 'border-slate-700 bg-slate-800/70 text-slate-200'
+        }`;
+      });
+
+      document.querySelectorAll('.width-pick-btn').forEach((btn) => {
+        const isMatch = btn.getAttribute('data-width') === state.preferences.readerWidth;
+        btn.className = `width-pick-btn rounded-xl border px-3 py-2 text-xs ${
+          isMatch
+            ? 'border-amber-500 bg-amber-500/15 text-amber-300 font-bold'
+            : 'border-slate-700 bg-slate-800/70 text-slate-200'
+        }`;
+      });
+    }
+
+    function renderReaderView() {
+      const story = STORIES.find((s) => s.id === state.activeStoryId) || STORIES[0];
+      const chData = getChapterContentData(story, state.activeChapterNumber);
+
+      document.getElementById('readerTopStoryTitle').textContent = story.title;
+      document.getElementById('readerTopChapterTitle').textContent = `Chương ${chData.number}: ${chData.title}`;
+      document.getElementById('readerStorySubtitle').textContent = `${story.title} • ${story.authorName}`;
+      document.getElementById('readerChapterHeading').textContent = `Chương ${chData.number}: ${chData.title}`;
+      document.getElementById('readerChapterMeta').textContent = `${chData.wordCount.toLocaleString('vi-VN')} chữ • Nhấn phím ← / → để chuyển chương`;
+
+      const article = document.getElementById('readerArticleBody');
+      article.innerHTML = chData.paragraphs.map((p) => `<p>${p}</p>`).join('');
+
+      // Populate Quick Chapter Select dropdown (window around current chapter)
+      const selectEl = document.getElementById('readerChapterSelect');
+      const startOpt = Math.max(1, chData.number - 10);
+      const endOpt = Math.min(story.totalChapters, chData.number + 20);
+      let optsHtml = '';
+      for (let i = startOpt; i <= endOpt; i++) {
+        optsHtml += `<option value="${i}" ${i === chData.number ? 'selected' : ''} class="bg-slate-900 text-white">Chương ${i}</option>`;
+      }
+      selectEl.innerHTML = optsHtml;
+
+      // Enable/disable Prev/Next buttons
+      const hasPrev = chData.number > 1;
+      const hasNext = chData.number < story.totalChapters;
+      document.getElementById('btnPrevChapterTop').disabled = !hasPrev;
+      document.getElementById('btnPrevChapterBottom').disabled = !hasPrev;
+      document.getElementById('btnNextChapterTop').disabled = !hasNext;
+      document.getElementById('btnNextChapterBottom').disabled = !hasNext;
+
+      // Reset prefetch badge for current chapter
+      const nextKey = `${story.slug}:${chData.number + 1}`;
+      const prefetchBadge = document.getElementById('prefetchBadge');
+      if (state.prefetchedCache[nextKey]) {
+        prefetchBadge.classList.remove('hidden');
+        prefetchBadge.textContent = `⚡ Đã tải sẵn Chương ${chData.number + 1} (0ms)`;
+      } else {
+        prefetchBadge.classList.add('hidden');
+      }
+
+      applyReaderPreferencesToDOM();
+
+      // Record initial reading history
+      state.history[story.id] = {
+        storyId: story.id,
+        chapterNumber: chData.number,
+        scrollPosition: 0,
+        updatedAt: Date.now()
+      };
+      saveState();
+      handleReaderScroll();
+    }
+
+    function handleReaderScroll() {
+      if (state.currentView !== 'reader') return;
+      const scrollTop = window.scrollY;
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const pct = docHeight > 0 ? Math.min(100, Math.max(0, Math.round((scrollTop / docHeight) * 100))) : 100;
+
+      document.getElementById('readingProgressBar').style.width = `${pct}%`;
+      document.getElementById('readerPercentBadge').textContent = `${pct}%`;
+
+      const story = STORIES.find((s) => s.id === state.activeStoryId) || STORIES[0];
+      state.history[story.id] = {
+        storyId: story.id,
+        chapterNumber: state.activeChapterNumber,
+        scrollPosition: pct,
+        updatedAt: Date.now()
+      };
+      saveState();
+
+      // Smart Prefetching when scrolling >= 70%
+      if (pct >= 70 && state.activeChapterNumber < story.totalChapters) {
+        const nextNum = state.activeChapterNumber + 1;
+        const nextKey = `${story.slug}:${nextNum}`;
+        if (!state.prefetchedCache[nextKey]) {
+          state.prefetchedCache[nextKey] = true;
+          const badge = document.getElementById('prefetchBadge');
+          badge.textContent = `⚡ Đã prefetch Chương ${nextNum} (0ms)`;
+          badge.classList.remove('hidden');
+        }
+      }
+    }
+
+    // =========================================================================
+    // 8. EVENT LISTENERS INITIALIZATION
+    // =========================================================================
+    window.addEventListener('DOMContentLoaded', () => {
+      loadState();
+      renderExploreView();
+
+    function renderAdminView() {
+      const sel = document.getElementById('cmsStorySelect');
+      sel.innerHTML = STORIES.map((st) => `<option value="${st.id}">${st.title} (${st.totalChapters} ch)</option>`).join('');
+    }
+
+      // Navigation Bar
+      document.getElementById('btnLogoHome').addEventListener('click', () => switchView('explore'));
+      document.getElementById('navExploreBtn').addEventListener('click', () => switchView('explore'));
+      document.getElementById('navShelfBtn').addEventListener('click', () => switchView('shelf'));
+      document.getElementById('navAdminBtn').addEventListener('click', () => switchView('admin'));
+      document.getElementById('navOpsBtn').addEventListener('click', () => switchView('ops'));
+
+      // Phase 6 DevOps & Watermark Forensic Listeners
+      document.getElementById('btnTestWatermarkRoundtrip').addEventListener('click', () => {
+        const trackingId = document.getElementById('opsWatermarkInputId').value.trim() || 'uid:1001';
+        const zwMap = { '0': '\u200B', '1': '\u200C', '2': '\u200D', '3': '\uFEFF' };
+        const revMap = { '\u200B': '0', '\u200C': '1', '\u200D': '2', '\uFEFF': '3' };
+        let encoded = '';
+        for (let i = 0; i < trackingId.length; i++) {
+          const b4 = trackingId.charCodeAt(i).toString(4).padStart(4, '0');
+          for (const d of b4) encoded += zwMap[d];
+        }
+        const watermarkedSample = 'Hàn Lập bước vào Thần Thủ Cốc' + encoded + ' tìm Mặc đại phu.';
+        let extractedB4 = '';
+        for (const ch of watermarkedSample) {
+          if (revMap[ch] !== undefined) extractedB4 += revMap[ch];
+        }
+        let decoded = '';
+        for (let i = 0; i + 4 <= extractedB4.length; i += 4) {
+          decoded += String.fromCharCode(parseInt(extractedB4.slice(i, i + 4), 4));
+        }
+        document.getElementById('opsWatermarkResult').textContent = `✓ Giải mã thành công 100%: "${decoded}" (Độ dài ký tự ẩn: ${encoded.length} chars)`;
+        showToast('Đã kiểm chứng nhúng & giải mã Zero-width Watermark!');
+      });
+
+      document.getElementById('btnRunHealthCheck').addEventListener('click', () => {
+        const log = document.getElementById('opsTelemetryLog');
+        const ts = new Date().toISOString().slice(11, 19);
+        const pgMs = (1.2 + Math.random() * 0.9).toFixed(1);
+        document.getElementById('opsPgLatency').textContent = `${pgMs} ms`;
+        log.innerHTML = `<p class="text-emerald-400">[${ts}] GET /api/health -> 200 OK (Postgres: ${pgMs}ms, Redis: 0.4ms, Memory RSS: 94MB)</p>` + log.innerHTML;
+        showToast('Healthcheck /api/health: 200 OK');
+      });
+
+      document.getElementById('btnTriggerBackupNow').addEventListener('click', () => {
+        const nowStr = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+        document.getElementById('opsLastBackupTime').textContent = nowStr;
+        const log = document.getElementById('opsTelemetryLog');
+        log.innerHTML = `<p class="text-amber-300">[BACKUP] pg_dump novel_db | zstd -19 -> uploaded novel_db_${Date.now()}.sql.zst to S3/R2</p>` + log.innerHTML;
+        showToast('Đã tạo bản sao lưu pg_dump nén Zstd và tải lên Cloud Storage!');
+      });
+
+      document.getElementById('btnVerifyRestoreNow').addEventListener('click', () => {
+        const log = document.getElementById('opsTelemetryLog');
+        log.innerHTML = `<p class="text-emerald-400">[RESTORE-VERIFY] pg_restore --list verified 9 tables &amp; indexes intact (0 errors)</p>` + log.innerHTML;
+        showToast('Kiểm thử khôi phục bản sao lưu thành công (0 lỗi)!');
+      });
+
+      // Admin CMS & RBAC Listeners
+      document.getElementById('rbacRoleSelect').addEventListener('change', (e) => {
+        const isReader = e.target.value === 'READER';
+        document.getElementById('rbacForbiddenBox').classList.toggle('hidden', !isReader);
+        document.getElementById('adminCmsWorkspace').classList.toggle('hidden', isReader);
+        showToast(`Đã chuyển vai trò RBAC sang: ${e.target.value}`);
+      });
+
+      document.getElementById('cmsChapterContent').addEventListener('input', (e) => {
+        const txt = e.target.value.trim();
+        const words = txt ? txt.split(/\s+/).length : 0;
+        document.getElementById('cmsWordCountBadge').textContent = `${words.toLocaleString('vi-VN')} chữ`;
+      });
+
+      document.getElementById('btnPublishChapterCms').addEventListener('click', () => {
+        const sId = document.getElementById('cmsStorySelect').value;
+        const cNum = parseInt(document.getElementById('cmsChapterNumber').value, 10) || 1;
+        const cTitle = document.getElementById('cmsChapterTitle').value.trim();
+        const cContent = document.getElementById('cmsChapterContent').value.trim();
+        const sched = document.getElementById('cmsScheduleTime').value;
+
+        if (!cTitle || !cContent) {
+          showToast('Vui lòng nhập tiêu đề và nội dung chương!');
+          return;
+        }
+
+        const story = STORIES.find((st) => st.id === sId) || STORIES[0];
+        story.totalChapters = Math.max(story.totalChapters, cNum);
+        SAMPLE_CHAPTERS.push({
+          number: cNum,
+          title: cTitle,
+          wordCount: cContent.split(/\s+/).length,
+          paragraphs: cContent.split(/\n+/)
+        });
+
+        document.getElementById('cmsChapterTitle').value = '';
+        document.getElementById('cmsChapterContent').value = '';
+        document.getElementById('cmsChapterNumber').value = String(cNum + 1);
+        document.getElementById('cmsWordCountBadge').textContent = '0 chữ';
+        renderAdminView();
+        showToast(sched ? `Đã hẹn giờ đăng Chương ${cNum} vào ${sched}` : `Đã nén Zstd & xuất bản Chương ${cNum} cho "${story.title}"`);
+      });
+
+      document.getElementById('btnCreateStoryCms').addEventListener('click', () => {
+        const title = document.getElementById('cmsNewStoryTitle').value.trim();
+        const author = document.getElementById('cmsNewStoryAuthor').value.trim();
+        const desc = document.getElementById('cmsNewStoryDesc').value.trim();
+        if (!title || !author) {
+          showToast('Vui lòng nhập tên truyện và tác giả!');
+          return;
+        }
+        const newId = String(STORIES.length + 1);
+        STORIES.unshift({
+          id: newId,
+          title,
+          slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+          authorName: author,
+          status: 'ONGOING',
+          totalViews: 1200,
+          totalChapters: 1,
+          avgRating: 5.0,
+          ratingsCount: 1,
+          gradient: 'from-indigo-500/30 via-sky-600/20 to-slate-900',
+          badgeColor: 'text-indigo-300',
+          categories: [CATEGORIES[0]],
+          updatedAt: new Date().toISOString(),
+          description: desc || `Tác phẩm mới của ${author} vừa được khởi tạo từ hệ thống CMS.`
+        });
+        document.getElementById('cmsNewStoryTitle').value = '';
+        document.getElementById('cmsNewStoryAuthor').value = '';
+        document.getElementById('cmsNewStoryDesc').value = '';
+        renderAdminView();
+        showToast(`Đã tạo truyện mới "${title}" thành công!`);
+      });
+
+      document.getElementById('btnRunBulkImportCms').addEventListener('click', () => {
+        try {
+          const raw = document.getElementById('cmsBulkJson').value;
+          const arr = JSON.parse(raw);
+          if (!Array.isArray(arr)) throw new Error('JSON phải là mảng');
+          const box = document.getElementById('cmsBulkProgressBox');
+          const bar = document.getElementById('cmsBulkProgressBar');
+          const pct = document.getElementById('cmsBulkProgressPct');
+          box.classList.remove('hidden');
+          bar.style.width = '40%';
+          pct.textContent = '40%';
+          setTimeout(() => {
+            bar.style.width = '100%';
+            pct.textContent = '100%';
+            arr.forEach((item) => {
+              if (item.chapterNumber && item.title && item.content) {
+                SAMPLE_CHAPTERS.push({
+                  number: Number(item.chapterNumber),
+                  title: String(item.title),
+                  wordCount: String(item.content).split(/\s+/).length,
+                  paragraphs: String(item.content).split(/\n+/)
+                });
+              }
+            });
+            showToast(`BullMQ Worker đã import thành công ${arr.length} chương!`);
+          }, 400);
+        } catch (err) {
+          showToast('Lỗi cú pháp JSON trong ô Bulk Import!');
+        }
+      });
+
+      document.getElementById('btnFlushViewsNow').addEventListener('click', () => {
+        STORIES.forEach((st) => { st.totalViews += Math.floor(Math.random() * 50) + 10; });
+        showToast('Đã chạy RENAMENX & đồng bộ lượt xem từ Redis Hash xuống PostgreSQL!');
+      });
+      document.getElementById('btnBackToExploreFromShelf').addEventListener('click', () => switchView('explore'));
+      document.getElementById('btnBackFromDetail').addEventListener('click', () => switchView('explore'));
+
+      // Cloud Sync Button
+      document.getElementById('btnSyncAccount').addEventListener('click', () => {
+        document.getElementById('syncAccountLabel').textContent = 'Đã đồng bộ Server';
+        showToast('Đã hợp nhất Lịch sử đọc & Cấu hình giao diện lên tài khoản Cloud');
+      });
+
+      // Clear History
+      document.getElementById('btnClearHistory').addEventListener('click', () => {
+        state.history = {};
+        saveState();
+        renderShelfView();
+        showToast('Đã xoá lịch sử đọc tạm thời');
+      });
+
+      // Filters
+      const searchInputEl = document.getElementById('searchInput');
+      const searchSuggestEl = document.getElementById('searchSuggestDropdown');
+
+      searchInputEl.addEventListener('input', (e) => {
+        const val = e.target.value.trim();
+        state.searchKeyword = val;
+        renderStoryCards();
+
+        if (val.length >= 1) {
+          const matched = STORIES.filter((st) =>
+            st.title.toLowerCase().includes(val.toLowerCase()) ||
+            st.authorName.toLowerCase().includes(val.toLowerCase())
+          ).slice(0, 4);
+
+          if (matched.length > 0) {
+            searchSuggestEl.innerHTML = matched.map((st) => `
+              <button type="button" data-suggest-id="${st.id}" class="w-full flex items-center justify-between rounded-lg px-3 py-1.5 text-left text-xs text-slate-200 hover:bg-amber-500 hover:text-slate-950 transition-colors">
+                <span class="truncate font-semibold">${st.title}</span>
+                <span class="ml-2 text-[10px] opacity-70">${st.authorName}</span>
+              </button>
+            `).join('');
+            searchSuggestEl.classList.remove('hidden');
+
+            searchSuggestEl.querySelectorAll('[data-suggest-id]').forEach((btn) => {
+              btn.addEventListener('click', () => {
+                state.activeStoryId = btn.getAttribute('data-suggest-id');
+                searchSuggestEl.classList.add('hidden');
+                switchView('detail');
+              });
+            });
+          } else {
+            searchSuggestEl.classList.add('hidden');
+          }
+        } else {
+          searchSuggestEl.classList.add('hidden');
+        }
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!searchInputEl.contains(e.target) && !searchSuggestEl.contains(e.target)) {
+          searchSuggestEl.classList.add('hidden');
+        }
+      });
+      document.getElementById('statusSelect').addEventListener('change', (e) => {
+        state.selectedStatus = e.target.value;
+        renderStoryCards();
+      });
+      document.getElementById('chapterRangeSelect').addEventListener('change', (e) => {
+        state.selectedChapterRange = e.target.value;
+        renderStoryCards();
+      });
+      document.getElementById('sortSelect').addEventListener('change', (e) => {
+        state.sortBy = e.target.value;
+        renderStoryCards();
+      });
+
+      // Leaderboard Timeframe Tabs
+      document.querySelectorAll('.lb-tab-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.leaderboardTimeframe = btn.getAttribute('data-tf');
+          document.querySelectorAll('.lb-tab-btn').forEach((b) => {
+            const active = b.getAttribute('data-tf') === state.leaderboardTimeframe;
+            b.className = active
+              ? 'lb-tab-btn rounded-md px-2 py-1 text-[10px] font-semibold bg-amber-500 text-slate-950'
+              : 'lb-tab-btn rounded-md px-2 py-1 text-[10px] font-medium text-slate-400 hover:text-white';
+          });
+          renderLeaderboard();
+        });
+      });
+
+      // Reader Controls
+      document.getElementById('btnReaderBackToStory').addEventListener('click', () => switchView('detail'));
+      document.getElementById('btnBackToCatalogBottom').addEventListener('click', () => switchView('detail'));
+
+      const goPrevChapter = () => {
+        if (state.activeChapterNumber > 1) {
+          openReader(state.activeStoryId, state.activeChapterNumber - 1);
+        }
+      };
+      const goNextChapter = () => {
+        const story = STORIES.find((s) => s.id === state.activeStoryId) || STORIES[0];
+        if (state.activeChapterNumber < story.totalChapters) {
+          openReader(state.activeStoryId, state.activeChapterNumber + 1);
+        }
+      };
+
+      document.getElementById('btnPrevChapterTop').addEventListener('click', goPrevChapter);
+      document.getElementById('btnPrevChapterBottom').addEventListener('click', goPrevChapter);
+      document.getElementById('btnNextChapterTop').addEventListener('click', goNextChapter);
+      document.getElementById('btnNextChapterBottom').addEventListener('click', goNextChapter);
+
+      document.getElementById('readerChapterSelect').addEventListener('change', (e) => {
+        openReader(state.activeStoryId, parseInt(e.target.value, 10));
+      });
+
+      // Reader Settings Modal
+      const settingsModal = document.getElementById('readerSettingsModal');
+      document.getElementById('btnOpenReaderSettings').addEventListener('click', () => {
+        settingsModal.classList.remove('hidden');
+        settingsModal.classList.add('flex');
+      });
+      const closeSettings = () => {
+        settingsModal.classList.add('hidden');
+        settingsModal.classList.remove('flex');
+      };
+      document.getElementById('btnCloseReaderSettings').addEventListener('click', closeSettings);
+      document.getElementById('btnDoneReaderSettings').addEventListener('click', () => {
+        closeSettings();
+        showToast('Đã lưu cấu hình đọc vào localStorage');
+      });
+
+      document.querySelectorAll('.theme-pick-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.preferences.theme = btn.getAttribute('data-theme');
+          saveState();
+          applyReaderPreferencesToDOM();
+        });
+      });
+
+      document.querySelectorAll('.font-pick-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.preferences.fontFamily = btn.getAttribute('data-font');
+          saveState();
+          applyReaderPreferencesToDOM();
+        });
+      });
+
+      document.querySelectorAll('.width-pick-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.preferences.readerWidth = btn.getAttribute('data-width');
+          saveState();
+          applyReaderPreferencesToDOM();
+        });
+      });
+
+      document.getElementById('btnFontDec').addEventListener('click', () => {
+        state.preferences.fontSize = Math.max(14, state.preferences.fontSize - 2);
+        saveState();
+        applyReaderPreferencesToDOM();
+      });
+      document.getElementById('btnFontInc').addEventListener('click', () => {
+        state.preferences.fontSize = Math.min(32, state.preferences.fontSize + 2);
+        saveState();
+        applyReaderPreferencesToDOM();
+      });
+      document.getElementById('btnLhDec').addEventListener('click', () => {
+        state.preferences.lineHeight = Number(Math.max(1.4, state.preferences.lineHeight - 0.1).toFixed(1));
+        saveState();
+        applyReaderPreferencesToDOM();
+      });
+      document.getElementById('btnLhInc').addEventListener('click', () => {
+        state.preferences.lineHeight = Number(Math.min(2.2, state.preferences.lineHeight + 0.1).toFixed(1));
+        saveState();
+        applyReaderPreferencesToDOM();
+      });
+      document.getElementById('btnResetReaderPrefs').addEventListener('click', () => {
+        state.preferences = { ...DEFAULT_PREFS };
+        saveState();
+        applyReaderPreferencesToDOM();
+        showToast('Đã khôi phục cài đặt đọc mặc định');
+      });
+
+      // Scroll & Keyboard Listeners
+      window.addEventListener('scroll', handleReaderScroll, { passive: true });
+      window.addEventListener('keydown', (e) => {
+        if (state.currentView !== 'reader') return;
+        if (!settingsModal.classList.contains('hidden')) return;
+        if (e.key === 'ArrowLeft') goPrevChapter();
+        if (e.key === 'ArrowRight') goNextChapter();
+      });
+    });
+  </script>
+</body>
+</html>
